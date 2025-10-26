@@ -104,7 +104,7 @@ export default function FineCorrection() {
 
         <h1 className="text-4xl font-bold mb-2">Correção de Multa Punitiva</h1>
         <p className="text-sm text-gray-400 mb-8">
-          Calcule a correção monetária e juros de mora sobre multas
+          Calcule a correção monetária e juros de mora sobre multas. Utilizando a taxa SELIC para atualização monetária conforme a legislação vigente.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
