@@ -135,7 +135,8 @@ export function calcularFatorSelic(
   selicRecords: SelicRecord[],
   valorInicial: number,
   excluirPrimeiro: boolean = false,
-  excluirUltimo: boolean = false
+  excluirUltimo: boolean = false,
+  isMonthlyRate: boolean = false
 ): number {
   // Usa maior precisão no cálculo acumulado
   let fator = 1;
@@ -149,10 +150,20 @@ export function calcularFatorSelic(
     recordsToUse = recordsToUse.slice(0, -1);
   }
   
-  recordsToUse.forEach(rec => {
-    // A API já retorna em percentual (ex: 1.00 = 1%), então dividimos por 100
-    const taxa = parseFloat(rec.valor) / 100;
-    fator = fator * (1 + taxa);
-  });
+  if (isMonthlyRate) {
+    // Série 4390 retorna a taxa SELIC acumulada no mês (ex: 0.80% ao mês)
+    // Já está na forma mensal, basta aplicar diretamente
+    recordsToUse.forEach(rec => {
+      const taxaMensal = parseFloat(rec.valor) / 100; // ex: 0.0080
+      fator = fator * (1 + taxaMensal);
+    });
+  } else {
+    // Para taxas diárias (série 11), cada valor é a taxa do dia
+    recordsToUse.forEach(rec => {
+      const taxa = parseFloat(rec.valor) / 100;
+      fator = fator * (1 + taxa);
+    });
+  }
+  
   return valorInicial * fator;
 }

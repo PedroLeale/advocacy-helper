@@ -4,12 +4,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-type SelicResult = {
-  initialValue: number;
-  correctedValue: number;
-  interestValue: number;
+type FineResult = {
+  originalValue: number;
+  finePercentage: number;
+  fineValue: number;
+  correctedFine: number;
+  monetaryCorrection: number;
+  interestFactor: number;
+  interest: number;
+  finalFineValue: number;
+  totalIncrease: number;
   correctionIndex: number;
   correctionPercentage: number;
+  correctedOriginalValue: number;
+  originalValueCorrection: number;
+  totalValue: number;
   periods: number;
   rates: Array<{ data: string; valor: string }>;
   calculationType: 'monthly' | 'daily';
@@ -21,13 +30,14 @@ type SelicResult = {
   endDateWasAdjusted: boolean;
 };
 
-export default function SelicCalculator() {
+export default function FineCorrection() {
+  const [originalValue, setOriginalValue] = useState('');
+  const [finePercentage, setFinePercentage] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [initialValue, setInitialValue] = useState('');
   const [calculationType, setCalculationType] = useState<'monthly' | 'daily'>('monthly');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<SelicResult | null>(null);
+  const [result, setResult] = useState<FineResult | null>(null);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,16 +47,17 @@ export default function SelicCalculator() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/selic', {
+      const response = await fetch('/api/fine-correction', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          dataInicial: startDate,
-          dataFinal: endDate,
-          valorInicial: initialValue,
-          tipoCalculo: calculationType === 'daily' ? 'diaria' : 'mensal',
+          originalFineValue: originalValue,
+          correctionStartDate: startDate,
+          finalDate: endDate,
+          finePercentage: finePercentage,
+          calculationType: calculationType === 'daily' ? 'diaria' : 'mensal',
         }),
       });
 
@@ -56,22 +67,10 @@ export default function SelicCalculator() {
         throw new Error(data.error || 'Erro ao calcular');
       }
 
-      // Map API response to English property names
+      // Map API response to component state
       setResult({
-        initialValue: data.valorInicial,
-        correctedValue: data.valorCorrigido,
-        interestValue: data.valorJuros,
-        correctionIndex: data.indiceCorrecao,
-        correctionPercentage: data.percentualCorrecao,
-        periods: data.periodos,
-        rates: data.taxas,
+        ...data,
         calculationType: calculationType,
-        originalStartDate: data.dataInicialOriginal,
-        adjustedStartDate: data.dataInicialAjustada,
-        startDateWasAdjusted: data.dataInicialFoiAjustada,
-        originalEndDate: data.dataFinalOriginal,
-        adjustedEndDate: data.dataFinalAjustada,
-        endDateWasAdjusted: data.dataFinalFoiAjustada,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -104,16 +103,53 @@ export default function SelicCalculator() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold mb-2">Calculadora de Correção SELIC</h1>
+        <h1 className="text-4xl font-bold mb-2">Correção de Multa Punitiva</h1>
         <p className="text-sm text-gray-400 mb-8">
-          Calcule a correção monetária pela taxa SELIC com opção de cálculo mensal ou diário
+          Calcule a correção monetária e juros de mora sobre multas
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
+              <label htmlFor="originalValue" className="block text-sm font-medium mb-2">
+                Valor Original (R$)
+              </label>
+              <input
+                type="number"
+                id="originalValue"
+                value={originalValue}
+                onChange={(e) => setOriginalValue(e.target.value)}
+                step="0.01"
+                min="0"
+                required
+                placeholder="10000.00"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="finePercentage" className="block text-sm font-medium mb-2">
+                Percentual da Multa (%)
+              </label>
+              <input
+                type="number"
+                id="finePercentage"
+                value={finePercentage}
+                onChange={(e) => setFinePercentage(e.target.value)}
+                step="0.01"
+                min="0"
+                max="100"
+                required
+                placeholder="10"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
               <label htmlFor="startDate" className="block text-sm font-medium mb-2">
-                Data Inicial
+                Data Inicial (Lançamento/Fato Gerador)
               </label>
               <input
                 type="date"
@@ -121,13 +157,13 @@ export default function SelicCalculator() {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 required
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
 
             <div>
               <label htmlFor="endDate" className="block text-sm font-medium mb-2">
-                Data Final
+                Data Final (Atualização)
               </label>
               <input
                 type="date"
@@ -135,26 +171,9 @@ export default function SelicCalculator() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="initialValue" className="block text-sm font-medium mb-2">
-              Valor Inicial (R$)
-            </label>
-            <input
-              type="number"
-              id="initialValue"
-              value={initialValue}
-              onChange={(e) => setInitialValue(e.target.value)}
-              step="0.01"
-              min="0"
-              required
-              placeholder="1000.00"
-              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
 
           <div>
@@ -167,7 +186,7 @@ export default function SelicCalculator() {
                 onClick={() => setCalculationType('monthly')}
                 className={`px-4 py-3 rounded-lg font-medium transition-colors ${
                   calculationType === 'monthly'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-green-600 text-white'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 }`}
               >
@@ -178,7 +197,7 @@ export default function SelicCalculator() {
                 onClick={() => setCalculationType('daily')}
                 className={`px-4 py-3 rounded-lg font-medium transition-colors ${
                   calculationType === 'daily'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-green-600 text-white'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 }`}
               >
@@ -190,7 +209,7 @@ export default function SelicCalculator() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors"
+            className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-medium transition-colors"
           >
             {loading ? 'Calculando...' : 'Calcular Correção'}
           </button>
@@ -204,10 +223,18 @@ export default function SelicCalculator() {
 
         {result && (
           <div className="space-y-6">
-            {/* Resumo dos Dados Informados */}
+            {/* Dados Informados */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Dados Informados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Valor original:</span>{' '}
+                  <span className="font-medium">{formatCurrency(result.originalValue)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Percentual da multa:</span>{' '}
+                  <span className="font-medium">{result.finePercentage}%</span>
+                </div>
                 <div>
                   <span className="text-gray-400">Data inicial:</span>{' '}
                   <span className="font-medium">
@@ -223,10 +250,6 @@ export default function SelicCalculator() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Valor nominal:</span>{' '}
-                  <span className="font-medium">{formatCurrency(result.initialValue)}</span>
-                </div>
-                <div>
                   <span className="text-gray-400">Tipo de cálculo:</span>{' '}
                   <span className="font-medium">{result.calculationType === 'monthly' ? 'Mensal' : 'Diário'}</span>
                 </div>
@@ -238,42 +261,108 @@ export default function SelicCalculator() {
               )}
             </div>
 
-            {/* Dados Calculados */}
+            {/* Resumo do Cálculo */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
-              <h3 className="text-lg font-semibold mb-3">Dados Calculados</h3>
+              <h3 className="text-lg font-semibold mb-3">Resumo do Cálculo</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
                 <div>
-                  <span className="text-gray-400">Índice de correção no período:</span>{' '}
+                  <span className="text-gray-400">Índice de correção:</span>{' '}
                   <span className="font-medium">{result.correctionIndex.toFixed(8)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Valor percentual correspondente:</span>{' '}
+                  <span className="text-gray-400">Percentual de correção:</span>{' '}
                   <span className="font-medium">{result.correctionPercentage.toFixed(6)} %</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Fator de juros:</span>{' '}
+                  <span className="font-medium">{result.interestFactor.toFixed(8)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Valores Calculados */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
-                <h3 className="text-sm text-gray-400 mb-1">Valor Inicial</h3>
-                <p className="text-2xl font-bold">{formatCurrency(result.initialValue)}</p>
-              </div>
-
-              <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
-                <h3 className="text-sm text-gray-400 mb-1">Juros SELIC</h3>
-                <p className="text-2xl font-bold text-green-400">
-                  {formatCurrency(result.interestValue)}
+                <h3 className="text-sm text-gray-400 mb-1">Valor da Multa</h3>
+                <p className="text-xl font-bold">{formatCurrency(result.fineValue)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {result.finePercentage}% de {formatCurrency(result.originalValue)}
                 </p>
               </div>
 
-              <div className="p-6 bg-blue-900/30 rounded-lg border border-blue-700">
-                <h3 className="text-sm text-gray-400 mb-1">Valor Corrigido</h3>
-                <p className="text-2xl font-bold text-blue-400">
-                  {formatCurrency(result.correctedValue)}
+              <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
+                <h3 className="text-sm text-gray-400 mb-2">Correção Monetária e Juros</h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-500">Correção Monetária</p>
+                    <p className="text-lg font-bold text-blue-400">
+                      {formatCurrency(result.monetaryCorrection)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Juros de Mora</p>
+                    <p className="text-lg font-bold text-yellow-400">
+                      {formatCurrency(result.interest)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-purple-900/30 rounded-lg border border-purple-700">
+                <h3 className="text-sm text-gray-400 mb-1">Valor Original Corrigido</h3>
+                <p className="text-xl font-bold text-purple-400">
+                  {formatCurrency(result.correctedOriginalValue)}
                 </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Correção: +{formatCurrency(result.originalValueCorrection)}
+                </p>
+              </div>
+
+              <div className="p-6 bg-green-900/30 rounded-lg border border-green-700">
+                <h3 className="text-sm text-gray-400 mb-1">Valor Final da Multa</h3>
+                <p className="text-2xl font-bold text-green-400 mb-3">
+                  {formatCurrency(result.finalFineValue)}
+                </p>
+                <div className="space-y-1 text-xs text-gray-400 border-t border-gray-700 pt-3">
+                  <div className="flex justify-between">
+                    <span>Multa base:</span>
+                    <span className="text-gray-300">{formatCurrency(result.fineValue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Correção SELIC:</span>
+                    <span className="text-blue-400">+{formatCurrency(result.monetaryCorrection)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Juros de mora:</span>
+                    <span className="text-yellow-400">+{formatCurrency(result.interest)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-sm pt-2 border-t border-gray-700 mt-2">
+                    <span className="text-gray-300">Total acrescido:</span>
+                    <span className="text-green-400">+{formatCurrency(result.totalIncrease)}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Valor Total */}
+            <div className="p-6 bg-red-900/30 rounded-lg border border-red-700">
+              <h3 className="text-sm text-gray-400 mb-1">Valor Total</h3>
+              <p className="text-3xl font-bold text-red-400 mb-3">
+                {formatCurrency(result.totalValue)}
+              </p>
+              <div className="space-y-1 text-xs text-gray-400 border-t border-red-700/50 pt-3">
+                <div className="flex justify-between">
+                  <span>Valor original corrigido:</span>
+                  <span className="text-gray-300">{formatCurrency(result.correctedOriginalValue)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Multa final corrigida:</span>
+                  <span className="text-gray-300">+{formatCurrency(result.finalFineValue)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Detalhes do Período */}
             <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-4">
                 Detalhes do Período ({result.periods} {result.calculationType === 'monthly' 
@@ -294,10 +383,10 @@ export default function SelicCalculator() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.rates.map((taxa, index) => (
+                    {result.rates.map((rate, index) => (
                       <tr key={index} className="border-b border-gray-700/50">
-                        <td className="py-2 px-2">{formatDate(taxa.data)}</td>
-                        <td className="text-right py-2 px-2">{taxa.valor}%</td>
+                        <td className="py-2 px-2">{formatDate(rate.data)}</td>
+                        <td className="text-right py-2 px-2">{rate.valor}%</td>
                       </tr>
                     ))}
                   </tbody>

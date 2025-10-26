@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Série 4189 = Taxa SELIC acumulada mensalmente (% ao mês)
+    // Série 4390 = Taxa SELIC acumulada no mês (% ao mês)
     // Série 11 = Taxa SELIC diária (% ao dia)
-    const serieCodigo = tipoCalculo === 'mensal' ? 4189 : 11;
+    const serieCodigo = tipoCalculo === 'mensal' ? 4390 : 11;
     
     // Ajusta datas para dias úteis
     const ajusteInicial = await ajustarParaDiaUtil(dataInicial, serieCodigo);
@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
     const valorInicialNum = parseFloat(valorInicial);
     
     // Usa o cálculo completo (incluindo todos os dias retornados pela API)
-    const valorCorrigido = calcularFatorSelic(selicRecords, valorInicialNum, false, false);
+    const isMonthly = tipoCalculo === 'mensal';
+    const valorCorrigido = calcularFatorSelic(selicRecords, valorInicialNum, false, false, isMonthly);
     const valorJuros = valorCorrigido - valorInicialNum;
     const indiceCorrecao = valorCorrigido / valorInicialNum;
     const percentualCorrecao = (indiceCorrecao - 1) * 100;
