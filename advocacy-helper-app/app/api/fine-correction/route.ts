@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     // Série 11 = Taxa SELIC diária (% ao dia)
     const serieCodigo = calculationType === 'mensal' ? 4390 : 11;
     
-    // Ajusta datas para dias úteis
     const adjustedStartDate = await ajustarParaDiaUtil(correctionStartDate, serieCodigo);
     const adjustedFinalDate = await ajustarParaDiaUtil(finalDate, serieCodigo);
     
@@ -100,7 +99,6 @@ export async function POST(request: NextRequest) {
       totalValue: totalValue,
       periods: selicRecords.length,
       rates: selicRecords,
-      // Informações sobre ajustes de data
       originalStartDate: correctionStartDate,
       adjustedStartDate: adjustedStartDate.dataAjustada,
       startDateWasAdjusted: adjustedStartDate.foiAjustada,

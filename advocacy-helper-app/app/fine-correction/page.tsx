@@ -67,7 +67,6 @@ export default function FineCorrection() {
         throw new Error(data.error || 'Erro ao calcular');
       }
 
-      // Map API response to component state
       setResult({
         ...data,
         calculationType: calculationType,
@@ -223,7 +222,6 @@ export default function FineCorrection() {
 
         {result && (
           <div className="space-y-6">
-            {/* Dados Informados */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Dados Informados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -260,8 +258,6 @@ export default function FineCorrection() {
                 </p>
               )}
             </div>
-
-            {/* Resumo do Cálculo */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Resumo do Cálculo</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
@@ -279,8 +275,6 @@ export default function FineCorrection() {
                 </div>
               </div>
             </div>
-
-            {/* Valores Calculados */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
                 <h3 className="text-sm text-gray-400 mb-1">Valor da Multa</h3>
@@ -344,7 +338,6 @@ export default function FineCorrection() {
               </div>
             </div>
 
-            {/* Valor Total */}
             <div className="p-6 bg-red-900/30 rounded-lg border border-red-700">
               <h3 className="text-sm text-gray-400 mb-1">Valor Total</h3>
               <p className="text-3xl font-bold text-red-400 mb-3">
@@ -362,7 +355,6 @@ export default function FineCorrection() {
               </div>
             </div>
 
-            {/* Detalhes do Período */}
             <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-4">
                 Detalhes do Período ({result.periods} {result.calculationType === 'monthly' 
@@ -396,7 +388,6 @@ export default function FineCorrection() {
           </div>
         )}
 
-        {/* Footer */}
         <footer className="mt-12 pt-8 border-t border-gray-700">
           <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
             <div className="flex items-center gap-2">

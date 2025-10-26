@@ -55,8 +55,6 @@ export default function SelicCalculator() {
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao calcular');
       }
-
-      // Map API response to English property names
       setResult({
         initialValue: data.valorInicial,
         correctedValue: data.valorCorrigido,
@@ -204,7 +202,6 @@ export default function SelicCalculator() {
 
         {result && (
           <div className="space-y-6">
-            {/* Resumo dos Dados Informados */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Dados Informados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -237,8 +234,6 @@ export default function SelicCalculator() {
                 </p>
               )}
             </div>
-
-            {/* Dados Calculados */}
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Dados Calculados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
@@ -306,8 +301,6 @@ export default function SelicCalculator() {
             </div>
           </div>
         )}
-
-        {/* Footer */}
         <footer className="mt-12 pt-8 border-t border-gray-700">
           <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
             <div className="flex items-center gap-2">

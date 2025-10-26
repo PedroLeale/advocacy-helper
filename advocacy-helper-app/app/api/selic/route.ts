@@ -17,22 +17,17 @@ export async function POST(request: NextRequest) {
     // Série 11 = Taxa SELIC diária (% ao dia)
     const serieCodigo = tipoCalculo === 'mensal' ? 4390 : 11;
     
-    // Ajusta datas para dias úteis
     const ajusteInicial = await ajustarParaDiaUtil(dataInicial, serieCodigo);
     const ajusteFinal = await ajustarParaDiaUtil(dataFinal, serieCodigo);
     
     console.log('Data inicial original:', dataInicial, '-> ajustada:', ajusteInicial.dataAjustada, 'foi ajustada?', ajusteInicial.foiAjustada);
     console.log('Data final original:', dataFinal, '-> ajustada:', ajusteFinal.dataAjustada, 'foi ajustada?', ajusteFinal.foiAjustada);
-    
-    // Para o cálculo, vamos até o dia ANTERIOR ao dia final
-    // Isso porque a correção é calculada ATÉ o dia anterior
     const dataFinalParaCalculo = new Date(ajusteFinal.dataAjustada);
     dataFinalParaCalculo.setDate(dataFinalParaCalculo.getDate() - 1);
     const dataFinalCalculoISO = dataFinalParaCalculo.toISOString().split('T')[0];
     
     console.log('Data final para cálculo (dia anterior):', dataFinalCalculoISO);
-    
-    // Busca os dados da API do Banco Central
+
     const selicRecords = await fetchSelicSerie(
       serieCodigo,
       ajusteInicial.dataAjustada,
@@ -50,10 +45,8 @@ export async function POST(request: NextRequest) {
     console.log(`Primeiro registro:`, selicRecords[0]);
     console.log(`Último registro:`, selicRecords[selicRecords.length - 1]);
 
-    // Calcula o valor corrigido
     const valorInicialNum = parseFloat(valorInicial);
     
-    // Usa o cálculo completo (incluindo todos os dias retornados pela API)
     const isMonthly = tipoCalculo === 'mensal';
     const valorCorrigido = calcularFatorSelic(selicRecords, valorInicialNum, false, false, isMonthly);
     const valorJuros = valorCorrigido - valorInicialNum;
@@ -68,7 +61,6 @@ export async function POST(request: NextRequest) {
       percentualCorrecao,
       periodos: selicRecords.length,
       taxas: selicRecords,
-      // Informações sobre ajustes de data
       dataInicialOriginal: dataInicial,
       dataInicialAjustada: ajusteInicial.dataAjustada,
       dataInicialFoiAjustada: ajusteInicial.foiAjustada,
