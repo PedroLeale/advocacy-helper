@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil } from '@/utils/selic';
+import { Money } from '@/utils/money';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,19 +76,29 @@ export async function POST(request: NextRequest) {
     console.log(`Primeiro registro:`, selicRecords[0]);
     console.log(`Último registro:`, selicRecords[selicRecords.length - 1]);
 
-    const valorInicialNum = parseFloat(valorInicial);
+    // Usa Money para cálculos precisos
+    const valorInicialMoney = new Money(valorInicial);
     
-    const valorCorrigido = calcularFatorSelic(selicRecords, valorInicialNum, false, false, true, dataInicialOriginal, dataFinalOriginal);
-    const valorJuros = valorCorrigido - valorInicialNum;
-    const indiceCorrecao = valorCorrigido / valorInicialNum;
-    const percentualCorrecao = (indiceCorrecao - 1) * 100;
+    const valorCorrigidoNum = calcularFatorSelic(selicRecords, valorInicialMoney.toNumber(), false, false, true, dataInicialOriginal, dataFinalOriginal);
+    const valorCorrigidoMoney = new Money(valorCorrigidoNum);
+    
+    // Cálculos precisos com Money
+    const valorJurosMoney = valorCorrigidoMoney.subtract(valorInicialMoney);
+    const indiceCorrecaoMoney = valorCorrigidoMoney.divide(valorInicialMoney.toNumber());
+    const percentualCorrecaoMoney = indiceCorrecaoMoney.subtract(1).multiply(100);
+
+    console.log(`💰 RESULTADO FINAL SELIC (Money Class):`);
+    console.log(`   Valor inicial: ${valorInicialMoney.toBRL()}`);
+    console.log(`   Valor corrigido: ${valorCorrigidoMoney.toBRL()}`);
+    console.log(`   Valor dos juros: ${valorJurosMoney.toBRL()}`);
+    console.log(`   Percentual: ${percentualCorrecaoMoney.toFixed(6)}%`);
 
     return NextResponse.json({
-      valorInicial: valorInicialNum,
-      valorCorrigido,
-      valorJuros,
-      indiceCorrecao,
-      percentualCorrecao,
+      valorInicial: valorInicialMoney.toNumber(),
+      valorCorrigido: valorCorrigidoMoney.toNumber(),
+      valorJuros: valorJurosMoney.toNumber(),
+      indiceCorrecao: indiceCorrecaoMoney.toNumber(),
+      percentualCorrecao: percentualCorrecaoMoney.toNumber(),
       periodos: selicRecords.length,
       taxas: selicRecords,
       dataInicialOriginal: dataInicial,

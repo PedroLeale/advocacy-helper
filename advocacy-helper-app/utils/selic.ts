@@ -161,6 +161,8 @@ function adicionarUmMes(dataStr: string): string {
   return `${newYear}-${newMonth}-${newDay}`;
 }
 
+import { Money, SelicCalculator } from './money';
+
 export function calcularFatorSelic(
   selicRecords: SelicRecord[],
   valorInicial: number,
@@ -170,7 +172,8 @@ export function calcularFatorSelic(
   dataInicial?: string,
   dataFinal?: string
 ): number {
-  let fator = 1;
+  // Converte para Money para cálculos precisos
+  const valorInicialMoney = new Money(valorInicial);
   
   let recordsToUse = selicRecords;
   if (excluirPrimeiro && recordsToUse.length > 0) {
@@ -180,37 +183,45 @@ export function calcularFatorSelic(
     recordsToUse = recordsToUse.slice(0, -1);
   }
   
-  console.log(`📊 Calculando fator SELIC MENSAL com ${recordsToUse.length} registros:`);
+  console.log(`📊 Calculando fator SELIC MENSAL com ${recordsToUse.length} registros (Money Class):`);
   console.log(`📅 Data inicial original: ${dataInicial}`);
   console.log(`📅 Data final: ${dataFinal}`);
 
   if (dataInicial && dataFinal) {
-    let percentualAcumuladoMensal = 0;
+    // Usa Money para evitar erros de precisão
+    let percentualAcumuladoMoney = new Money(0);
+    
     recordsToUse.forEach((rec, index) => {
-      const taxaMensal: number = parseFloat(rec.valor) / 100;
+      const taxaMensalMoney = new Money(rec.valor).divide(100);
       if (index < 10 || index >= recordsToUse.length - 10) {
         console.log(`✓ ${rec.data}: ${rec.valor}%`);
       }
       
-      percentualAcumuladoMensal += taxaMensal;
-      console.log(`   Percentual acumulado: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
+      percentualAcumuladoMoney = percentualAcumuladoMoney.add(taxaMensalMoney);
+      console.log(`   Percentual acumulado: ${percentualAcumuladoMoney.multiply(100).toFixed(6)}%`);
     });
     
     const [yearFinal, monthFinal] = dataFinal.split('-');
     const ultimoMes = `01/${monthFinal}/${yearFinal}`;
     console.log(`🔴 ADICIONANDO ÚLTIMO MÊS ${ultimoMes}: 1% fixo`);
-    percentualAcumuladoMensal += 0.01;
-    console.log(`   Percentual acumulado FINAL: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
+    percentualAcumuladoMoney = percentualAcumuladoMoney.add(new Money(0.01));
+    console.log(`   Percentual acumulado FINAL: ${percentualAcumuladoMoney.multiply(100).toFixed(6)}%`);
     
-    fator = 1 + percentualAcumuladoMensal;
+    // Calcula o fator: 1 + percentual acumulado
+    const fatorMoney = new Money(1).add(percentualAcumuladoMoney);
+    
+    // Aplica correção usando Money
+    const valorCorrigidoMoney = valorInicialMoney.multiply(fatorMoney.toNumber());
+    
+    console.log(`📈 RESULTADO FINAL (Money Class):`);
+    console.log(`   Fator acumulado: ${fatorMoney.toFixed(8)}`);
+    console.log(`   Percentual SELIC acumulado (SIMPLES): ${percentualAcumuladoMoney.multiply(100).toFixed(6)}%`);
+    console.log(`   Valor inicial: ${valorInicialMoney.toBRL()}`);
+    console.log(`   Valor corrigido: ${valorCorrigidoMoney.toBRL()}`);
+    
+    return valorCorrigidoMoney.toNumber();
   }
   
-  const percentualAcumulado = (fator - 1) * 100;
-  console.log(`📈 RESULTADO FINAL:`);
-  console.log(`   Fator acumulado: ${fator.toFixed(8)}`);
-  console.log(`   Percentual SELIC acumulado (SIMPLES): ${percentualAcumulado.toFixed(6)}%`);
-  console.log(`   Valor inicial: R$ ${valorInicial.toFixed(2)}`);
-  console.log(`   Valor corrigido: R$ ${(valorInicial * fator).toFixed(2)}`);
-  
-  return valorInicial * fator;
+  // Fallback para compatibilidade
+  return valorInicial;
 }
