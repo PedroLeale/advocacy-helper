@@ -166,7 +166,7 @@ export function calcularFatorSelic(
   valorInicial: number,
   excluirPrimeiro: boolean = false,
   excluirUltimo: boolean = false,
-  isMonthlyRate: boolean = false,
+  isMonthlyRate: boolean = true, // Sempre mensal agora
   dataInicial?: string, // Formato "YYYY-MM-DD" 
   dataFinal?: string // Formato "YYYY-MM-DD"
 ): number {
@@ -182,11 +182,12 @@ export function calcularFatorSelic(
     recordsToUse = recordsToUse.slice(0, -1);
   }
   
-  console.log(`📊 Calculando fator SELIC com ${recordsToUse.length} registros:`);
+  console.log(`📊 Calculando fator SELIC MENSAL com ${recordsToUse.length} registros:`);
   console.log(`📅 Data inicial original: ${dataInicial}`);
-  console.log(`� Data final: ${dataFinal}`);
+  console.log(`📅 Data final: ${dataFinal}`);
   
-  if (isMonthlyRate && dataInicial && dataFinal) {
+  // SELIC mensal - sempre usa acúmulo simples agora
+  if (dataInicial && dataFinal) {
     // SELIC mensal - aplica o ACÚMULO SIMPLES das taxas (não capitalização composta)
     let percentualAcumuladoMensal = 0;
     
@@ -211,17 +212,6 @@ export function calcularFatorSelic(
     
     // Converte percentual acumulado para fator
     fator = 1 + percentualAcumuladoMensal;
-  } else {
-    // SELIC diária - aplica a fórmula de capitalização composta
-    recordsToUse.forEach((rec, index) => {
-      // Usa sempre os valores reais da API
-      const taxa = parseFloat(rec.valor) / 100;
-      if (index < 5 || index >= recordsToUse.length - 5) { // Log apenas primeiros e últimos
-        console.log(`✓ ${rec.data}: ${rec.valor}%`);
-      }
-      
-      fator = fator * (1 + taxa);
-    });
   }
   
   const percentualAcumulado = (fator - 1) * 100;

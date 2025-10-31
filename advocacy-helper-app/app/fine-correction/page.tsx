@@ -35,7 +35,6 @@ export default function FineCorrection() {
   const [finePercentage, setFinePercentage] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [calculationType, setCalculationType] = useState<'monthly' | 'daily'>('monthly');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FineResult | null>(null);
   const [error, setError] = useState('');
@@ -57,7 +56,7 @@ export default function FineCorrection() {
           correctionStartDate: startDate,
           finalDate: endDate,
           finePercentage: finePercentage,
-          calculationType: calculationType === 'daily' ? 'diaria' : 'mensal',
+          calculationType: 'mensal',
         }),
       });
 
@@ -69,7 +68,7 @@ export default function FineCorrection() {
 
       setResult({
         ...data,
-        calculationType: calculationType,
+        calculationType: 'monthly',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -175,35 +174,7 @@ export default function FineCorrection() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-3">
-              Tipo de Cálculo
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setCalculationType('monthly')}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                  calculationType === 'monthly'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Taxa Mensal
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalculationType('daily')}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                  calculationType === 'daily'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Taxa Diária
-              </button>
-            </div>
-          </div>
+
 
           <button
             type="submit"
@@ -249,7 +220,7 @@ export default function FineCorrection() {
                 </div>
                 <div>
                   <span className="text-gray-400">Tipo de cálculo:</span>{' '}
-                  <span className="font-medium">{result.calculationType === 'monthly' ? 'Mensal' : 'Diário'}</span>
+                  <span className="font-medium">Mensal</span>
                 </div>
               </div>
               {(result.startDateWasAdjusted || result.endDateWasAdjusted) && (

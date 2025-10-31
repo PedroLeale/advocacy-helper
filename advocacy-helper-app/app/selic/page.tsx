@@ -37,17 +37,15 @@ export default function SelicCalculator() {
 
     try {
       const response = await fetch('/api/selic', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dataInicial: startDate,
-          dataFinal: endDate,
-          valorInicial: initialValue,
-          tipoCalculo: calculationType === 'daily' ? 'diaria' : 'mensal',
-        }),
-      });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dataInicial: startDate,
+            dataFinal: endDate,
+            valorInicial: initialValue,
+            tipoCalculo: 'mensal',
+          }),
+        });
 
       const data = await response.json();
 
@@ -62,7 +60,7 @@ export default function SelicCalculator() {
         correctionPercentage: data.percentualCorrecao,
         periods: data.periodos,
         rates: data.taxas,
-        calculationType: calculationType,
+        calculationType: 'monthly',
         originalStartDate: data.dataInicialOriginal,
         adjustedStartDate: data.dataInicialAjustada,
         startDateWasAdjusted: data.dataInicialFoiAjustada,
@@ -103,7 +101,7 @@ export default function SelicCalculator() {
 
         <h1 className="text-4xl font-bold mb-2">Calculadora de Correção SELIC</h1>
         <p className="text-sm text-gray-400 mb-8">
-          Calcule a correção monetária pela taxa SELIC com opção de cálculo mensal ou diário
+          Calcule a correção monetária pela taxa SELIC mensal (metodologia PGE/SP)
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
@@ -198,7 +196,7 @@ export default function SelicCalculator() {
                 </div>
                 <div>
                   <span className="text-gray-400">Tipo de cálculo:</span>{' '}
-                  <span className="font-medium">{result.calculationType === 'monthly' ? 'Mensal' : 'Diário'}</span>
+                  <span className="font-medium">Mensal</span>
                 </div>
                 <div className="md:col-span-2">
                   <span className="text-gray-400">Valor nominal:</span>{' '}
@@ -206,14 +204,12 @@ export default function SelicCalculator() {
                 </div>
               </div>
               
-              {result.calculationType === 'monthly' && (
-                <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
-                  <p className="text-xs text-blue-300">
-                    <strong>📅 Para cálculo mensal:</strong> A data inicial é automaticamente ajustada para +1 mês 
-                    e o último mês do período recebe taxa fixa de 1% (conforme metodologia PGE/SP).
-                  </p>
-                </div>
-              )}
+              <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                <p className="text-xs text-blue-300">
+                  <strong>📅 Metodologia:</strong> A data inicial é automaticamente ajustada para +1 mês 
+                  e o último mês do período recebe taxa fixa de 1% (conforme metodologia PGE/SP).
+                </p>
+              </div>
               
               {(result.startDateWasAdjusted || result.endDateWasAdjusted) && (
                 <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
