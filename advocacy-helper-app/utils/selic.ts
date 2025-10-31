@@ -1,3 +1,5 @@
+import { Money } from 'ts-money';
+
 type SelicRecord = {
   data: string;
   valor: string;
@@ -148,19 +150,6 @@ export async function fetchSelicSerie(
   return uniqueRecords;
 }
 
-function adicionarUmMes(dataStr: string): string {
-  // Converte "YYYY-MM-DD" para Date, adiciona 1 mês e volta para "YYYY-MM-DD"
-  const [year, month, day] = dataStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day); // month - 1 porque Date usa 0-based months
-  date.setMonth(date.getMonth() + 1);
-  
-  const newYear = date.getFullYear();
-  const newMonth = String(date.getMonth() + 1).padStart(2, '0');
-  const newDay = String(date.getDate()).padStart(2, '0');
-  
-  return `${newYear}-${newMonth}-${newDay}`;
-}
-
 export function calcularFatorSelic(
   selicRecords: SelicRecord[],
   valorInicial: number,
@@ -213,4 +202,58 @@ export function calcularFatorSelic(
   console.log(`   Valor corrigido: R$ ${(valorInicial * fator).toFixed(2)}`);
   
   return valorInicial * fator;
+}
+
+/**
+ * Aplica correção SELIC a um valor monetário usando ts-money
+ */
+export function aplicarCorrecaoSelic(
+  valorInicial: Money,
+  selicRecords: SelicRecord[],
+  excluirPrimeiro: boolean = false,
+  excluirUltimo: boolean = false,
+  dataInicial?: string,
+  dataFinal?: string
+): Money {
+  // Calcula o fator de correção SELIC
+  const valorInicialNumber = valorInicial.getAmount() / 100; // converte cents para reais
+  const valorCorrigido = calcularFatorSelic(
+    selicRecords,
+    valorInicialNumber,
+    excluirPrimeiro,
+    excluirUltimo,
+    true,
+    dataInicial,
+    dataFinal
+  );
+  
+  // Retorna como Money (valor em centavos)
+  return new Money(Math.round(valorCorrigido * 100), valorInicial.getCurrency());
+}
+
+/**
+ * Calcula multa sobre um valor usando ts-money
+ */
+export function calcularMulta(valor: Money, percentualMulta: number): Money {
+  const valorEmReais = valor.getAmount() / 100;
+  const multaEmReais = valorEmReais * (percentualMulta / 100);
+  return new Money(Math.round(multaEmReais * 100), valor.getCurrency());
+}
+
+/**
+ * Cria um valor Money em Real brasileiro
+ */
+export function criarValorBRL(valorEmReais: number): Money {
+  return new Money(Math.round(valorEmReais * 100), 'BRL');
+}
+
+/**
+ * Converte Money para string formatada em Real brasileiro
+ */
+export function formatarReal(valor: Money): string {
+  const valorEmReais = valor.getAmount() / 100;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(valorEmReais);
 }

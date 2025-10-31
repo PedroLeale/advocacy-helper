@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil } from '@/utils/selic';
+import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil, aplicarCorrecaoSelic, calcularMulta, criarValorBRL, formatarReal } from '@/utils/selic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +16,16 @@ export async function POST(request: NextRequest) {
     // Validação de datas
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Final do dia atual
+    
+    // Data mínima: março de 1995 (início da série histórica SELIC)
+    const dataMinima = new Date('1995-03-01');
+    
+    if (new Date(correctionStartDate) < dataMinima) {
+      return NextResponse.json(
+        { error: 'A data inicial deve ser posterior a março de 1995.' },
+        { status: 400 }
+      );
+    }
     
     if (new Date(correctionStartDate) >= new Date(finalDate)) {
       return NextResponse.json(
@@ -85,35 +95,49 @@ export async function POST(request: NextRequest) {
     const originalFineNum = parseFloat(originalFineValue);
     const finePercentageNum = parseFloat(finePercentage);
     
+    // Usando ts-money para cálculos precisos
+    const valorOriginalMoney = criarValorBRL(originalFineNum);
+    
     // 1. Calcula o FATOR SELIC acumulado
     const fatorSelic = calcularFatorSelic(selicRecords, 1, false, false, true, dataInicialOriginal, dataFinalOriginal);
     const selicPercentage = (fatorSelic - 1) * 100;
     
-    console.log(`📊 NOVA METODOLOGIA DE MULTA:`);
-    console.log(`   Valor original: R$ ${originalFineNum.toFixed(2)}`);
+    console.log(`📊 NOVA METODOLOGIA DE MULTA (ts-money):`);
+    console.log(`   Valor original: ${formatarReal(valorOriginalMoney)}`);
     console.log(`   SELIC acumulada: ${selicPercentage.toFixed(2)}%`);
     console.log(`   Fator SELIC: ${fatorSelic.toFixed(8)}`);
     
-    // 2. Atualiza o valor principal pela SELIC
-    const correctedOriginalValue = originalFineNum * fatorSelic;
+    // 2. Atualiza o valor principal pela SELIC usando ts-money
+    const valorCorrigidoMoney = aplicarCorrecaoSelic(
+      valorOriginalMoney,
+      selicRecords,
+      false,
+      false,
+      dataInicialOriginal,
+      dataFinalOriginal
+    );
+    
+    const correctedOriginalValue = valorCorrigidoMoney.getAmount() / 100;
     const originalValueCorrection = correctedOriginalValue - originalFineNum;
     
-    console.log(`   Valor principal corrigido: R$ ${correctedOriginalValue.toFixed(2)}`);
+    console.log(`   Valor principal corrigido: ${formatarReal(valorCorrigidoMoney)}`);
     console.log(`   Correção do principal: R$ ${originalValueCorrection.toFixed(2)}`);
     
-    // 3. Aplica o percentual da multa SOBRE O VALOR JÁ CORRIGIDO
-    const fineValue = correctedOriginalValue * (finePercentageNum / 100);
+    // 3. Aplica o percentual da multa SOBRE O VALOR JÁ CORRIGIDO usando ts-money
+    const multaMoney = calcularMulta(valorCorrigidoMoney, finePercentageNum);
+    const fineValue = multaMoney.getAmount() / 100;
     
-    console.log(`   Multa ${finePercentageNum}% sobre valor corrigido: R$ ${fineValue.toFixed(2)}`);
+    console.log(`   Multa ${finePercentageNum}% sobre valor corrigido: ${formatarReal(multaMoney)}`);
     
     // 4. Valor final = valor principal corrigido + multa
-    const totalValue = correctedOriginalValue + fineValue;
+    const totalValueMoney = valorCorrigidoMoney.add(multaMoney);
+    const totalValue = totalValueMoney.getAmount() / 100;
     
-    console.log(`   VALOR FINAL: R$ ${totalValue.toFixed(2)}`);
+    console.log(`   VALOR FINAL: ${formatarReal(totalValueMoney)}`);
     console.log(`📋 RESUMO:`);
-    console.log(`   Principal: R$ ${originalFineNum.toFixed(2)} → R$ ${correctedOriginalValue.toFixed(2)} (+${selicPercentage.toFixed(2)}%)`);
-    console.log(`   Multa: R$ ${fineValue.toFixed(2)} (${finePercentageNum}% sobre valor corrigido)`);
-    console.log(`   Total: R$ ${totalValue.toFixed(2)}`);
+    console.log(`   Principal: ${formatarReal(valorOriginalMoney)} → ${formatarReal(valorCorrigidoMoney)} (+${selicPercentage.toFixed(2)}%)`);
+    console.log(`   Multa: ${formatarReal(multaMoney)} (${finePercentageNum}% sobre valor corrigido)`);
+    console.log(`   Total: ${formatarReal(totalValueMoney)}`);
     
     // Valores para exibição
     const totalIncrease = totalValue - originalFineNum; // Aumento total sobre o valor original

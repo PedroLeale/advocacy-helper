@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil } from '@/utils/selic';
+import { fetchSelicSerie, ajustarParaDiaUtil, aplicarCorrecaoSelic, criarValorBRL } from '@/utils/selic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,16 @@ export async function POST(request: NextRequest) {
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
+    
+    // Data mínima: março de 1995 (início da série histórica SELIC)
+    const dataMinima = new Date('1995-03-01');
+    
+    if (new Date(dataInicial) < dataMinima) {
+      return NextResponse.json(
+        { error: 'A data inicial deve ser posterior a março de 1995 (início da série histórica SELIC).' },
+        { status: 400 }
+      );
+    }
     
     if (new Date(dataInicial) >= new Date(dataFinal)) {
       return NextResponse.json(
@@ -45,8 +55,6 @@ export async function POST(request: NextRequest) {
     
     console.log('Data inicial original:', dataInicial, '-> ajustada:', ajusteInicial.dataAjustada, 'foi ajustada?', ajusteInicial.foiAjustada);
     console.log('Data final original:', dataFinal, '-> ajustada:', ajusteFinal.dataAjustada, 'foi ajustada?', ajusteFinal.foiAjustada);
-    
-    const isMonthly = true;
 
     const dataInicialOriginal = ajusteInicial.dataAjustada;
     const dataFinalOriginal = ajusteFinal.dataAjustada;
@@ -77,7 +85,18 @@ export async function POST(request: NextRequest) {
 
     const valorInicialNum = parseFloat(valorInicial);
     
-    const valorCorrigido = calcularFatorSelic(selicRecords, valorInicialNum, false, false, true, dataInicialOriginal, dataFinalOriginal);
+    // Usando ts-money para cálculos precisos
+    const valorInicialMoney = criarValorBRL(valorInicialNum);
+    const valorCorrigidoMoney = aplicarCorrecaoSelic(
+      valorInicialMoney, 
+      selicRecords, 
+      false, 
+      false, 
+      dataInicialOriginal, 
+      dataFinalOriginal
+    );
+    
+    const valorCorrigido = valorCorrigidoMoney.getAmount() / 100;
     const valorJuros = valorCorrigido - valorInicialNum;
     const indiceCorrecao = valorCorrigido / valorInicialNum;
     const percentualCorrecao = (indiceCorrecao - 1) * 100;
