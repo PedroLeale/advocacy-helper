@@ -45,6 +45,12 @@ export default function FineCorrection() {
     setError('');
     setResult(null);
 
+    if (new Date(startDate) >= new Date(endDate)) {
+      setError('A data final deve ser posterior à data inicial.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/fine-correction', {
         method: 'POST',
@@ -92,9 +98,8 @@ export default function FineCorrection() {
   const copyToClipboard = (value: string, element: HTMLElement) => {
     navigator.clipboard.writeText(value);
     
-    // Feedback visual
     const originalBg = element.style.backgroundColor;
-    element.style.backgroundColor = 'rgba(34, 197, 94, 0.3)'; // green
+    element.style.backgroundColor = 'rgba(34, 197, 94, 0.3)';
     element.style.transform = 'scale(1.02)';
     
     setTimeout(() => {
@@ -121,7 +126,6 @@ export default function FineCorrection() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
-          {/* Seção de Datas */}
           <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
             <h3 className="text-lg font-semibold mb-4">Período do Cálculo</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,6 +138,7 @@ export default function FineCorrection() {
                   id="startDate"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
                   required
                   className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -143,19 +148,30 @@ export default function FineCorrection() {
                 <label htmlFor="endDate" className="block text-sm font-medium mb-2">
                   Data Final (Atualização)
                 </label>
-                <input
-                  type="date"
-                  id="endDate"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  required
-                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    id="endDate"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || undefined}
+                    max={new Date().toISOString().split('T')[0]}
+                    required
+                    className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors whitespace-nowrap"
+                    title="Definir como hoje"
+                  >
+                    Hoje
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Seção de Valores */}
           <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
             <h3 className="text-lg font-semibold mb-4">Valores e Multa</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -314,7 +330,6 @@ export default function FineCorrection() {
                         const dataRow = `${result.originalStartDate?.split('-').reverse().join('/')},${result.originalValue.toFixed(2)},${result.correctionPercentage.toFixed(2)}%,${result.originalValueCorrection.toFixed(2)},${result.correctedOriginalValue.toFixed(2)},${result.finePercentage}%,${multaValue.toFixed(2)},${result.finalFineValue.toFixed(2)}`;
                         const copyData = includeHeader ? `${header}\n${dataRow}` : dataRow;
                         navigator.clipboard.writeText(copyData);
-                        // Feedback visual
                         const button = event.target as HTMLButtonElement;
                         const originalText = button.textContent;
                         button.textContent = '✅ Copiado!';

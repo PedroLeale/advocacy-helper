@@ -13,7 +13,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Série 4390 = Taxa SELIC acumulada no mês (% ao mês) - sempre mensal
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    if (new Date(dataInicial) >= new Date(dataFinal)) {
+      return NextResponse.json(
+        { error: 'A data final deve ser posterior à data inicial.' },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(dataInicial) > today) {
+      return NextResponse.json(
+        { error: 'A data inicial não pode ser uma data futura.' },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(dataFinal) > today) {
+      return NextResponse.json(
+        { error: 'A data final não pode ser uma data futura.' },
+        { status: 400 }
+      );
+    }
+
+    // Série 4390 = Taxa SELIC acumulada no mês (% ao mês)
     const serieCodigo = 4390;
     
     const ajusteInicial = await ajustarParaDiaUtil(dataInicial, serieCodigo);
@@ -22,22 +46,17 @@ export async function POST(request: NextRequest) {
     console.log('Data inicial original:', dataInicial, '-> ajustada:', ajusteInicial.dataAjustada, 'foi ajustada?', ajusteInicial.foiAjustada);
     console.log('Data final original:', dataFinal, '-> ajustada:', ajusteFinal.dataAjustada, 'foi ajustada?', ajusteFinal.foiAjustada);
     
-    // Sempre é taxa mensal
     const isMonthly = true;
-    
-    // Lógica MENSAL: busca dados de dataInicial+1mês até dataFinal-1mês
-    // e adiciona o último mês com 1% fixo na função calcularFatorSelic
+
     const dataInicialOriginal = ajusteInicial.dataAjustada;
     const dataFinalOriginal = ajusteFinal.dataAjustada;
     
-    // Adiciona 1 mês à data inicial
     const [year, month, day] = ajusteInicial.dataAjustada.split('-').map(Number);
-    const dataInicialMais1Mes = new Date(year, month - 1 + 1, day); // month-1 porque Date usa 0-based
+    const dataInicialMais1Mes = new Date(year, month - 1 + 1, day);
     const dataInicialParaBusca = dataInicialMais1Mes.toISOString().split('T')[0];
-    
-    // Subtrai 1 mês da data final
+ 
     const [yearF, monthF, dayF] = ajusteFinal.dataAjustada.split('-').map(Number);
-    const dataFinalMenos1Mes = new Date(yearF, monthF - 1 - 1, dayF); // month-1 porque Date usa 0-based
+    const dataFinalMenos1Mes = new Date(yearF, monthF - 1 - 1, dayF); 
     const dataFinalParaBusca = dataFinalMenos1Mes.toISOString().split('T')[0];
     
     console.log(`📅 MENSAL - Original: ${dataInicialOriginal} a ${dataFinalOriginal}`);
@@ -72,8 +91,8 @@ export async function POST(request: NextRequest) {
       periodos: selicRecords.length,
       taxas: selicRecords,
       dataInicialOriginal: dataInicial,
-      dataInicialAjustada: dataInicialParaBusca, // Data realmente usada no cálculo (+1 mês)
-      dataInicialFoiAjustada: true, // Sempre ajustada para +1 mês na metodologia
+      dataInicialAjustada: dataInicialParaBusca,
+      dataInicialFoiAjustada: true,
       dataFinalOriginal: dataFinal,
       dataFinalAjustada: ajusteFinal.dataAjustada,
       dataFinalFoiAjustada: ajusteFinal.foiAjustada,

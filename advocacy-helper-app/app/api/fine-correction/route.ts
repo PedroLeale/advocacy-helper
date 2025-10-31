@@ -13,6 +13,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validação de datas
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Final do dia atual
+    
+    if (new Date(correctionStartDate) >= new Date(finalDate)) {
+      return NextResponse.json(
+        { error: 'A data final deve ser posterior à data inicial.' },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(correctionStartDate) > today) {
+      return NextResponse.json(
+        { error: 'A data inicial não pode ser uma data futura.' },
+        { status: 400 }
+      );
+    }
+
+    if (new Date(finalDate) > today) {
+      return NextResponse.json(
+        { error: 'A data final não pode ser uma data futura.' },
+        { status: 400 }
+      );
+    }
+
     // Série 4390 = Taxa SELIC acumulada no mês (% ao mês) - sempre mensal
     const serieCodigo = 4390;
     

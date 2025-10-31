@@ -166,14 +166,12 @@ export function calcularFatorSelic(
   valorInicial: number,
   excluirPrimeiro: boolean = false,
   excluirUltimo: boolean = false,
-  isMonthlyRate: boolean = true, // Sempre mensal agora
-  dataInicial?: string, // Formato "YYYY-MM-DD" 
-  dataFinal?: string // Formato "YYYY-MM-DD"
+  isMonthlyRate: boolean = true,
+  dataInicial?: string,
+  dataFinal?: string
 ): number {
-  // Usa maior precisão no cálculo acumulado
   let fator = 1;
   
-  // Filtra registros baseado nas opções
   let recordsToUse = selicRecords;
   if (excluirPrimeiro && recordsToUse.length > 0) {
     recordsToUse = recordsToUse.slice(1);
@@ -185,32 +183,25 @@ export function calcularFatorSelic(
   console.log(`📊 Calculando fator SELIC MENSAL com ${recordsToUse.length} registros:`);
   console.log(`📅 Data inicial original: ${dataInicial}`);
   console.log(`📅 Data final: ${dataFinal}`);
-  
-  // SELIC mensal - sempre usa acúmulo simples agora
+
   if (dataInicial && dataFinal) {
-    // SELIC mensal - aplica o ACÚMULO SIMPLES das taxas (não capitalização composta)
     let percentualAcumuladoMensal = 0;
-    
-    // Processa os dados da API (que são de dataInicial+1mês até dataFinal-1mês)
     recordsToUse.forEach((rec, index) => {
       const taxaMensal: number = parseFloat(rec.valor) / 100;
-      if (index < 10 || index >= recordsToUse.length - 10) { // Mais logs para debug
+      if (index < 10 || index >= recordsToUse.length - 10) {
         console.log(`✓ ${rec.data}: ${rec.valor}%`);
       }
       
-      // Acúmulo simples das taxas mensais
       percentualAcumuladoMensal += taxaMensal;
       console.log(`   Percentual acumulado: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
     });
     
-    // Adiciona o último mês com 1% fixo
     const [yearFinal, monthFinal] = dataFinal.split('-');
     const ultimoMes = `01/${monthFinal}/${yearFinal}`;
     console.log(`🔴 ADICIONANDO ÚLTIMO MÊS ${ultimoMes}: 1% fixo`);
     percentualAcumuladoMensal += 0.01;
     console.log(`   Percentual acumulado FINAL: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
     
-    // Converte percentual acumulado para fator
     fator = 1 + percentualAcumuladoMensal;
   }
   

@@ -35,6 +35,12 @@ export default function SelicCalculator() {
     setError('');
     setResult(null);
 
+    if (new Date(startDate) >= new Date(endDate)) {
+      setError('A data final deve ser posterior à data inicial.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/selic', {
           method: 'POST',
@@ -115,6 +121,7 @@ export default function SelicCalculator() {
                 id="startDate"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
                 required
                 className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -124,14 +131,26 @@ export default function SelicCalculator() {
               <label htmlFor="endDate" className="block text-sm font-medium mb-2">
                 Data Final
               </label>
-              <input
-                type="date"
-                id="endDate"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  id="endDate"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || undefined}
+                  max={new Date().toISOString().split('T')[0]}
+                  required
+                  className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors whitespace-nowrap"
+                  title="Definir como hoje"
+                >
+                  Hoje
+                </button>
+              </div>
             </div>
           </div>
 
