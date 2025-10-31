@@ -56,37 +56,42 @@ export async function POST(request: NextRequest) {
     console.log(`Primeiro registro:`, selicRecords[0]);
     console.log(`Último registro:`, selicRecords[selicRecords.length - 1]);
 
-    // Cálculo da multa punitiva
+    // NOVA METODOLOGIA: Corrige primeiro o valor principal, depois aplica a multa
     const originalFineNum = parseFloat(originalFineValue);
     const finePercentageNum = parseFloat(finePercentage);
     
-    // 1. Aplica a porcentagem da multa sobre o valor original
-    const fineValue = originalFineNum * (finePercentageNum / 100);
-    
-    // 2. Calcula o FATOR SELIC acumulado (uma única vez)
-    // Usa a data final de cálculo (não a ajustada) para determinar o mês atual
+    // 1. Calcula o FATOR SELIC acumulado
     const fatorSelic = calcularFatorSelic(selicRecords, 1, false, false, true, dataInicialOriginal, dataFinalOriginal);
+    const selicPercentage = (fatorSelic - 1) * 100;
     
-    // 3. Correção monetária: multa × fator SELIC
-    const correctedFine = fineValue * fatorSelic;
-    const monetaryCorrection = correctedFine - fineValue;
+    console.log(`📊 NOVA METODOLOGIA DE MULTA:`);
+    console.log(`   Valor original: R$ ${originalFineNum.toFixed(2)}`);
+    console.log(`   SELIC acumulada: ${selicPercentage.toFixed(2)}%`);
+    console.log(`   Fator SELIC: ${fatorSelic.toFixed(8)}`);
     
-    // 4. Juros de mora: aplica o incremento do fator sobre a multa já corrigida
-    // Juros = multa corrigida × (fator - 1)
-    const interest = correctedFine * (fatorSelic - 1);
-    
-    // 5. Valor final da multa = correção monetária + juros de mora
-    const finalFineValue = correctedFine + interest;
-    
-    // 6. Corrige o valor original pela SELIC (mesmo fator)
+    // 2. Atualiza o valor principal pela SELIC
     const correctedOriginalValue = originalFineNum * fatorSelic;
     const originalValueCorrection = correctedOriginalValue - originalFineNum;
     
-    // 7. Valor total = valor original corrigido + multa final (corrigida + juros)
-    const totalValue = correctedOriginalValue + finalFineValue;
+    console.log(`   Valor principal corrigido: R$ ${correctedOriginalValue.toFixed(2)}`);
+    console.log(`   Correção do principal: R$ ${originalValueCorrection.toFixed(2)}`);
+    
+    // 3. Aplica o percentual da multa SOBRE O VALOR JÁ CORRIGIDO
+    const fineValue = correctedOriginalValue * (finePercentageNum / 100);
+    
+    console.log(`   Multa ${finePercentageNum}% sobre valor corrigido: R$ ${fineValue.toFixed(2)}`);
+    
+    // 4. Valor final = valor principal corrigido + multa
+    const totalValue = correctedOriginalValue + fineValue;
+    
+    console.log(`   VALOR FINAL: R$ ${totalValue.toFixed(2)}`);
+    console.log(`📋 RESUMO:`);
+    console.log(`   Principal: R$ ${originalFineNum.toFixed(2)} → R$ ${correctedOriginalValue.toFixed(2)} (+${selicPercentage.toFixed(2)}%)`);
+    console.log(`   Multa: R$ ${fineValue.toFixed(2)} (${finePercentageNum}% sobre valor corrigido)`);
+    console.log(`   Total: R$ ${totalValue.toFixed(2)}`);
     
     // Valores para exibição
-    const totalIncrease = finalFineValue - fineValue;
+    const totalIncrease = totalValue - originalFineNum; // Aumento total sobre o valor original
     const correctionIndex = fatorSelic;
     const correctionPercentage = (fatorSelic - 1) * 100;
 
@@ -94,11 +99,11 @@ export async function POST(request: NextRequest) {
       originalValue: originalFineNum,
       finePercentage: finePercentageNum,
       fineValue: fineValue,
-      correctedFine: correctedFine,
-      monetaryCorrection: monetaryCorrection,
+      correctedFine: correctedOriginalValue, // Valor principal corrigido
+      monetaryCorrection: originalValueCorrection, // Correção só do principal
       interestFactor: fatorSelic,
-      interest: interest,
-      finalFineValue: finalFineValue,
+      interest: fineValue, // Valor da multa aplicada
+      finalFineValue: totalValue, // Valor total final
       totalIncrease: totalIncrease,
       correctionIndex: correctionIndex,
       correctionPercentage: correctionPercentage,
@@ -108,8 +113,8 @@ export async function POST(request: NextRequest) {
       periods: selicRecords.length,
       rates: selicRecords,
       originalStartDate: correctionStartDate,
-      adjustedStartDate: adjustedStartDate.dataAjustada,
-      startDateWasAdjusted: adjustedStartDate.foiAjustada,
+      adjustedStartDate: dataInicialParaBusca, // Data realmente usada no cálculo (+1 mês)
+      startDateWasAdjusted: true, // Sempre ajustada para +1 mês na metodologia
       originalEndDate: finalDate,
       adjustedEndDate: adjustedFinalDate.dataAjustada,
       endDateWasAdjusted: adjustedFinalDate.foiAjustada

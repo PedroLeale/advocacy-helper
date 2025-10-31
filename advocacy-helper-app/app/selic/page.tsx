@@ -206,8 +206,8 @@ export default function SelicCalculator() {
               
               <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
                 <p className="text-xs text-blue-300">
-                  <strong>📅 Metodologia:</strong> A data inicial é automaticamente ajustada para +1 mês 
-                  e o último mês do período recebe taxa fixa de 1% (conforme metodologia PGE/SP).
+                  <strong>📅 Metodologia PGE/SP:</strong> A data inicial é automaticamente ajustada para +1 mês 
+                  (ex: 01/01/2019 → 01/02/2019) e o último mês do período recebe taxa fixa de 1%.
                 </p>
               </div>
               

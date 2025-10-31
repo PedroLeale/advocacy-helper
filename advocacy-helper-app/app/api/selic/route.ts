@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
       periodos: selicRecords.length,
       taxas: selicRecords,
       dataInicialOriginal: dataInicial,
-      dataInicialAjustada: dataInicialParaBusca,
-      dataInicialFoiAjustada: true, // Para mensal, sempre foi "ajustada" (+1 mês)
+      dataInicialAjustada: dataInicialParaBusca, // Data realmente usada no cálculo (+1 mês)
+      dataInicialFoiAjustada: true, // Sempre ajustada para +1 mês na metodologia
       dataFinalOriginal: dataFinal,
       dataFinalAjustada: ajusteFinal.dataAjustada,
       dataFinalFoiAjustada: ajusteFinal.foiAjustada,

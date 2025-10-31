@@ -197,16 +197,14 @@ export default function FineCorrection() {
               <h3 className="text-lg font-semibold mb-3">Dados Informados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-400">Valor original:</span>{' '}
-                  <span className="font-medium">{formatCurrency(result.originalValue)}</span>
+                  <span className="text-gray-400">Data inicial informada:</span>{' '}
+                  <span className="font-medium text-gray-300">
+                    {result.originalStartDate?.split('-').reverse().join('/') || 'N/A'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Percentual da multa:</span>{' '}
-                  <span className="font-medium">{result.finePercentage}%</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Data inicial:</span>{' '}
-                  <span className="font-medium">
+                  <span className="text-gray-400">Data inicial usada no cálculo:</span>{' '}
+                  <span className="font-medium text-white">
                     {result.adjustedStartDate.split('-').reverse().join('/')}
                     {result.startDateWasAdjusted && '*'}
                   </span>
@@ -222,111 +220,104 @@ export default function FineCorrection() {
                   <span className="text-gray-400">Tipo de cálculo:</span>{' '}
                   <span className="font-medium">Mensal</span>
                 </div>
+                <div>
+                  <span className="text-gray-400">Valor original:</span>{' '}
+                  <span className="font-medium">{formatCurrency(result.originalValue)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Percentual da multa:</span>{' '}
+                  <span className="font-medium">{result.finePercentage}%</span>
+                </div>
               </div>
-              {(result.startDateWasAdjusted || result.endDateWasAdjusted) && (
-                <p className="text-xs text-yellow-400 mt-3">
-                  * A data informada não é dia útil, a data utilizada para este cálculo refere-se ao primeiro dia útil subsequente
+              
+              <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                <p className="text-xs text-blue-300">
+                  <strong>📅 Metodologia PGE/SP:</strong> A data inicial é automaticamente ajustada para +1 mês 
+                  (ex: 04/01/2019 → 04/02/2019) e o último mês do período recebe taxa fixa de 1%.
                 </p>
+              </div>
+              
+              {(result.startDateWasAdjusted || result.endDateWasAdjusted) && (
+                <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                  <p className="text-xs text-yellow-300">
+                    <strong>⚠️ Ajuste de dias úteis:</strong> * A data informada não é dia útil, 
+                    a data utilizada para este cálculo refere-se ao primeiro dia útil subsequente.
+                  </p>
+                </div>
               )}
             </div>
+
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
-              <h3 className="text-lg font-semibold mb-3">Resumo do Cálculo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-4">
-                <div>
-                  <span className="text-gray-400">Índice de correção:</span>{' '}
-                  <span className="font-medium">{result.correctionIndex.toFixed(8)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Percentual de correção:</span>{' '}
-                  <span className="font-medium">{result.correctionPercentage.toFixed(6)} %</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Fator de juros:</span>{' '}
-                  <span className="font-medium">{result.interestFactor.toFixed(8)}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">SELIC acumulada no período:</span>{' '}
-                  <span className="font-medium text-green-400">{result.correctionPercentage.toFixed(2)} %</span>
-                </div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Resumo do Cálculo</h3>
+                <button
+                  onClick={(event) => {
+                    const copyData = `Termo Inicial\tPrincipal\tCorreção SELIC (%)\tValor Juros\tPrincipal Atualizado\tMulta%\tPrincipal + Multa
+${result.originalStartDate?.split('-').reverse().join('/')}\t${result.originalValue.toFixed(2)}\t${result.correctionPercentage.toFixed(2)}%\t${result.originalValueCorrection.toFixed(2)}\t${result.correctedOriginalValue.toFixed(2)}\t${result.finePercentage}%\t${result.finalFineValue.toFixed(2)}`;
+                    navigator.clipboard.writeText(copyData);
+                    // Feedback visual
+                    const button = event.target as HTMLButtonElement;
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Copiado!';
+                    button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600');
+                    setTimeout(() => {
+                      button.textContent = originalText;
+                      button.className = button.className.replace('bg-green-600', 'bg-blue-600 hover:bg-blue-700');
+                    }, 2000);
+                  }}
+                  className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                  title="Copiar no formato: Termo Inicial | Principal | Correção SELIC (%) | Valor Juros | Principal Atualizado | Multa% | Principal + Multa"
+                >
+                  📋 Copiar Tabela
+                </button>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
-                <h3 className="text-sm text-gray-400 mb-1">Valor da Multa</h3>
-                <p className="text-xl font-bold">{formatCurrency(result.fineValue)}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {result.finePercentage}% de {formatCurrency(result.originalValue)}
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-600">
+                      <th className="text-center py-3 px-2 font-semibold">Termo Inicial</th>
+                      <th className="text-center py-3 px-2 font-semibold">Principal</th>
+                      <th className="text-center py-3 px-2 font-semibold">Correção SELIC (%)</th>
+                      <th className="text-center py-3 px-2 font-semibold">Valor Juros</th>
+                      <th className="text-center py-3 px-2 font-semibold">Principal Atualizado</th>
+                      <th className="text-center py-3 px-2 font-semibold">Multa%</th>
+                      <th className="text-center py-3 px-2 font-semibold">Principal + Multa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-700">
+                      <td className="text-center py-3 px-2 font-mono text-blue-400">
+                        {result.originalStartDate?.split('-').reverse().join('/') || 'N/A'}
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono text-white">
+                        {result.originalValue.toFixed(2)}
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono text-green-400">
+                        {result.correctionPercentage.toFixed(2)}%
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono text-yellow-400">
+                        {result.originalValueCorrection.toFixed(2)}
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono text-blue-400">
+                        {result.correctedOriginalValue.toFixed(2)}
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono text-orange-400">
+                        {result.finePercentage}%
+                      </td>
+                      <td className="text-center py-3 px-2 font-mono font-bold text-green-400">
+                        {result.finalFineValue.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                <p className="text-xs text-blue-300">
+                  <strong>📋 Para copiar:</strong> Clique no botão "Copiar" ou selecione a tabela acima. 
+                  Esta tabela segue a metodologia PGE/SP: correção do principal pela SELIC + aplicação da multa sobre o valor já corrigido.
                 </p>
-              </div>
-
-              <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
-                <h3 className="text-sm text-gray-400 mb-2">Correção Monetária e Juros</h3>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Correção Monetária</p>
-                    <p className="text-lg font-bold text-blue-400">
-                      {formatCurrency(result.monetaryCorrection)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Juros de Mora</p>
-                    <p className="text-lg font-bold text-yellow-400">
-                      {formatCurrency(result.interest)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 bg-purple-900/30 rounded-lg border border-purple-700">
-                <h3 className="text-sm text-gray-400 mb-1">Valor Original Corrigido</h3>
-                <p className="text-xl font-bold text-purple-400">
-                  {formatCurrency(result.correctedOriginalValue)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Correção: +{formatCurrency(result.originalValueCorrection)}
-                </p>
-              </div>
-
-              <div className="p-6 bg-green-900/30 rounded-lg border border-green-700">
-                <h3 className="text-sm text-gray-400 mb-1">Valor Final da Multa</h3>
-                <p className="text-2xl font-bold text-green-400 mb-3">
-                  {formatCurrency(result.finalFineValue)}
-                </p>
-                <div className="space-y-1 text-xs text-gray-400 border-t border-gray-700 pt-3">
-                  <div className="flex justify-between">
-                    <span>Multa base:</span>
-                    <span className="text-gray-300">{formatCurrency(result.fineValue)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Correção SELIC:</span>
-                    <span className="text-blue-400">+{formatCurrency(result.monetaryCorrection)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Juros de mora:</span>
-                    <span className="text-yellow-400">+{formatCurrency(result.interest)}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold text-sm pt-2 border-t border-gray-700 mt-2">
-                    <span className="text-gray-300">Total acrescido:</span>
-                    <span className="text-green-400">+{formatCurrency(result.totalIncrease)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-red-900/30 rounded-lg border border-red-700">
-              <h3 className="text-sm text-gray-400 mb-1">Valor Total</h3>
-              <p className="text-3xl font-bold text-red-400 mb-3">
-                {formatCurrency(result.totalValue)}
-              </p>
-              <div className="space-y-1 text-xs text-gray-400 border-t border-red-700/50 pt-3">
-                <div className="flex justify-between">
-                  <span>Valor original corrigido:</span>
-                  <span className="text-gray-300">{formatCurrency(result.correctedOriginalValue)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Multa final corrigida:</span>
-                  <span className="text-gray-300">+{formatCurrency(result.finalFineValue)}</span>
-                </div>
               </div>
             </div>
 
