@@ -174,24 +174,41 @@ export function calcularFatorSelic(
   console.log(`📅 Data final: ${dataFinal}`);
 
   if (dataInicial && dataFinal) {
-    let percentualAcumuladoMensal = 0;
+    // Usa aritmética de inteiros para evitar erros de ponto flutuante
+    let percentualAcumuladoBasisPoints = 0; // Em basis points (1% = 10000 bp)
+    
     recordsToUse.forEach((rec, index) => {
-      const taxaMensal: number = parseFloat(rec.valor) / 100;
-      if (index < 10 || index >= recordsToUse.length - 10) {
-        console.log(`✓ ${rec.data}: ${rec.valor}%`);
+      // Converte string para número com mais segurança
+      const valorStr = rec.valor.replace(',', '.'); // Garante ponto decimal
+      const taxaPercentual = Number(valorStr);
+      
+      if (isNaN(taxaPercentual)) {
+        console.warn(`Valor SELIC inválido ignorado: "${rec.valor}" na data ${rec.data}`);
+        return;
       }
       
-      percentualAcumuladoMensal += taxaMensal;
-      console.log(`   Percentual acumulado: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
+      // Converte para basis points (1.15% = 115 bp)
+      const taxaBasisPoints = Math.round(taxaPercentual * 100);
+      
+      if (index < 10 || index >= recordsToUse.length - 10) {
+        console.log(`✓ ${rec.data}: ${rec.valor}% (${taxaBasisPoints} bp)`);
+      }
+      
+      percentualAcumuladoBasisPoints += taxaBasisPoints;
+      const percentualDisplay = percentualAcumuladoBasisPoints / 100;
+      console.log(`   Percentual acumulado: ${percentualDisplay.toFixed(6)}%`);
     });
     
     const [yearFinal, monthFinal] = dataFinal.split('-');
     const ultimoMes = `01/${monthFinal}/${yearFinal}`;
-    console.log(`🔴 ADICIONANDO ÚLTIMO MÊS ${ultimoMes}: 1% fixo`);
-    percentualAcumuladoMensal += 0.01;
-    console.log(`   Percentual acumulado FINAL: ${(percentualAcumuladoMensal * 100).toFixed(6)}%`);
+    console.log(`🔴 ADICIONANDO ÚLTIMO MÊS ${ultimoMes}: 1% fixo (100 bp)`);
+    percentualAcumuladoBasisPoints += 100; // 1% = 100 basis points
     
-    fator = 1 + percentualAcumuladoMensal;
+    const percentualFinalDisplay = percentualAcumuladoBasisPoints / 100;
+    console.log(`   Percentual acumulado FINAL: ${percentualFinalDisplay.toFixed(6)}%`);
+    
+    // Converte de volta para fator (mais seguro)
+    fator = 1 + (percentualAcumuladoBasisPoints / 10000);
   }
   
   const percentualAcumulado = (fator - 1) * 100;
@@ -206,6 +223,7 @@ export function calcularFatorSelic(
 
 /**
  * Aplica correção SELIC a um valor monetário usando ts-money
+ * Usa multiplicação direta do ts-money para máxima precisão
  */
 export function aplicarCorrecaoSelic(
   valorInicial: Money,
@@ -215,11 +233,10 @@ export function aplicarCorrecaoSelic(
   dataInicial?: string,
   dataFinal?: string
 ): Money {
-  // Calcula o fator de correção SELIC
-  const valorInicialNumber = valorInicial.getAmount() / 100; // converte cents para reais
-  const valorCorrigido = calcularFatorSelic(
+  // Calcula apenas o fator de correção SELIC (sem multiplicar)
+  const fatorSelic = calcularFatorSelic(
     selicRecords,
-    valorInicialNumber,
+    1, // Valor base = 1 para obter apenas o fator
     excluirPrimeiro,
     excluirUltimo,
     true,
@@ -227,8 +244,10 @@ export function aplicarCorrecaoSelic(
     dataFinal
   );
   
-  // Retorna como Money (valor em centavos)
-  return new Money(Math.round(valorCorrigido * 100), valorInicial.getCurrency());
+  // Multiplica usando ts-money para máxima precisão
+  // Converte fator para inteiro (multiply aceita apenas inteiros)
+  const fatorInteiro = Math.round(fatorSelic * 10000); // 4 casas decimais de precisão
+  return valorInicial.multiply(fatorInteiro).divide(10000);
 }
 
 /**
