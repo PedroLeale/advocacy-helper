@@ -89,9 +89,23 @@ export default function FineCorrection() {
     return `${day}/${month}/${year}`;
   };
 
+  const copyToClipboard = (value: string, element: HTMLElement) => {
+    navigator.clipboard.writeText(value);
+    
+    // Feedback visual
+    const originalBg = element.style.backgroundColor;
+    element.style.backgroundColor = 'rgba(34, 197, 94, 0.3)'; // green
+    element.style.transform = 'scale(1.02)';
+    
+    setTimeout(() => {
+      element.style.backgroundColor = originalBg;
+      element.style.transform = 'scale(1)';
+    }, 300);
+  };
+
   return (
     <div className="min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="max-w-4xl mx-auto">
+      <main className="max-w-6xl mx-auto">
         <div className="mb-6">
           <Link 
             href="/" 
@@ -107,70 +121,78 @@ export default function FineCorrection() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="originalValue" className="block text-sm font-medium mb-2">
-                Valor Original (R$)
-              </label>
-              <input
-                type="number"
-                id="originalValue"
-                value={originalValue}
-                onChange={(e) => setOriginalValue(e.target.value)}
-                step="0.01"
-                min="0"
-                required
-                placeholder="10000.00"
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
+          {/* Seção de Datas */}
+          <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
+            <h3 className="text-lg font-semibold mb-4">Período do Cálculo</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium mb-2">
+                  Data Inicial (Lançamento/Fato Gerador)
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
 
-            <div>
-              <label htmlFor="finePercentage" className="block text-sm font-medium mb-2">
-                Percentual da Multa (%)
-              </label>
-              <input
-                type="number"
-                id="finePercentage"
-                value={finePercentage}
-                onChange={(e) => setFinePercentage(e.target.value)}
-                step="0.01"
-                min="0"
-                max="100"
-                required
-                placeholder="10"
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium mb-2">
+                  Data Final (Atualização)
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium mb-2">
-                Data Inicial (Lançamento/Fato Gerador)
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
+          {/* Seção de Valores */}
+          <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
+            <h3 className="text-lg font-semibold mb-4">Valores e Multa</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="originalValue" className="block text-sm font-medium mb-2">
+                  Valor Original (R$)
+                </label>
+                <input
+                  type="number"
+                  id="originalValue"
+                  value={originalValue}
+                  onChange={(e) => setOriginalValue(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  required
+                  placeholder="10000.00"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
 
-            <div>
-              <label htmlFor="endDate" className="block text-sm font-medium mb-2">
-                Data Final (Atualização)
-              </label>
-              <input
-                type="date"
-                id="endDate"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
+              <div>
+                <label htmlFor="finePercentage" className="block text-sm font-medium mb-2">
+                  Percentual da Multa (%)
+                </label>
+                <input
+                  type="number"
+                  id="finePercentage"
+                  value={finePercentage}
+                  onChange={(e) => setFinePercentage(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  required
+                  placeholder="10"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
             </div>
           </div>
 
@@ -250,26 +272,65 @@ export default function FineCorrection() {
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Resumo do Cálculo</h3>
-                <button
-                  onClick={(event) => {
-                    const copyData = `Termo Inicial\tPrincipal\tCorreção SELIC (%)\tValor Juros\tPrincipal Atualizado\tMulta%\tPrincipal + Multa
-${result.originalStartDate?.split('-').reverse().join('/')}\t${result.originalValue.toFixed(2)}\t${result.correctionPercentage.toFixed(2)}%\t${result.originalValueCorrection.toFixed(2)}\t${result.correctedOriginalValue.toFixed(2)}\t${result.finePercentage}%\t${result.finalFineValue.toFixed(2)}`;
-                    navigator.clipboard.writeText(copyData);
-                    // Feedback visual
-                    const button = event.target as HTMLButtonElement;
-                    const originalText = button.textContent;
-                    button.textContent = '✅ Copiado!';
-                    button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600');
-                    setTimeout(() => {
-                      button.textContent = originalText;
-                      button.className = button.className.replace('bg-green-600', 'bg-blue-600 hover:bg-blue-700');
-                    }, 2000);
-                  }}
-                  className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-                  title="Copiar no formato: Termo Inicial | Principal | Correção SELIC (%) | Valor Juros | Principal Atualizado | Multa% | Principal + Multa"
-                >
-                  📋 Copiar Tabela
-                </button>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      defaultChecked={true}
+                      id="include-header-checkbox"
+                      className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <span>Copiar com cabeçalho</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(event) => {
+                        const includeHeader = (document.getElementById('include-header-checkbox') as HTMLInputElement).checked;
+                        const multaValue = result.correctedOriginalValue * (result.finePercentage / 100);
+                        const header = 'Termo Inicial\tPrincipal\tCorreção SELIC (%)\tValor Juros\tPrincipal Atualizado\tMulta%\tMulta\tPrincipal + Multa';
+                        const dataRow = `${result.originalStartDate?.split('-').reverse().join('/')}\t${result.originalValue.toFixed(2)}\t${result.correctionPercentage.toFixed(2)}%\t${result.originalValueCorrection.toFixed(2)}\t${result.correctedOriginalValue.toFixed(2)}\t${result.finePercentage}%\t${multaValue.toFixed(2)}\t${result.finalFineValue.toFixed(2)}`;
+                        const copyData = includeHeader ? `${header}\n${dataRow}` : dataRow;
+                        navigator.clipboard.writeText(copyData);
+                        // Feedback visual
+                        const button = event.target as HTMLButtonElement;
+                        const originalText = button.textContent;
+                        button.textContent = '✅ Copiado!';
+                        button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600');
+                        setTimeout(() => {
+                          button.textContent = originalText;
+                          button.className = button.className.replace('bg-green-600', 'bg-blue-600 hover:bg-blue-700');
+                        }, 2000);
+                      }}
+                      className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                      title="Copiar formato TSV (Tab Separated Values) - para Excel/Sheets"
+                    >
+                      📋 TSV
+                    </button>
+                    <button
+                      onClick={(event) => {
+                        const includeHeader = (document.getElementById('include-header-checkbox') as HTMLInputElement).checked;
+                        const multaValue = result.correctedOriginalValue * (result.finePercentage / 100);
+                        const header = 'Termo Inicial,Principal,Correção SELIC (%),Valor Juros,Principal Atualizado,Multa%,Multa,Principal + Multa';
+                        const dataRow = `${result.originalStartDate?.split('-').reverse().join('/')},${result.originalValue.toFixed(2)},${result.correctionPercentage.toFixed(2)}%,${result.originalValueCorrection.toFixed(2)},${result.correctedOriginalValue.toFixed(2)},${result.finePercentage}%,${multaValue.toFixed(2)},${result.finalFineValue.toFixed(2)}`;
+                        const copyData = includeHeader ? `${header}\n${dataRow}` : dataRow;
+                        navigator.clipboard.writeText(copyData);
+                        // Feedback visual
+                        const button = event.target as HTMLButtonElement;
+                        const originalText = button.textContent;
+                        button.textContent = '✅ Copiado!';
+                        button.className = button.className.replace('bg-green-600 hover:bg-green-700', 'bg-blue-600');
+                        setTimeout(() => {
+                          button.textContent = originalText;
+                          button.className = button.className.replace('bg-blue-600', 'bg-green-600 hover:bg-green-700');
+                        }, 2000);
+                      }}
+                      className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 rounded transition-colors"
+                      title="Copiar formato CSV (Comma Separated Values) - para importação"
+                    >
+                      📊 CSV
+                    </button>
+                  </div>
+                </div>
               </div>
               
               <div className="overflow-x-auto">
@@ -282,31 +343,85 @@ ${result.originalStartDate?.split('-').reverse().join('/')}\t${result.originalVa
                       <th className="text-center py-3 px-2 font-semibold">Valor Juros</th>
                       <th className="text-center py-3 px-2 font-semibold">Principal Atualizado</th>
                       <th className="text-center py-3 px-2 font-semibold">Multa%</th>
+                      <th className="text-center py-3 px-2 font-semibold">Multa</th>
                       <th className="text-center py-3 px-2 font-semibold">Principal + Multa</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-700">
-                      <td className="text-center py-3 px-2 font-mono text-blue-400">
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-blue-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          const value = result.originalStartDate?.split('-').reverse().join('/') || 'N/A';
+                          copyToClipboard(value, e.currentTarget);
+                        }}
+                        title="Clique para copiar a data"
+                      >
                         {result.originalStartDate?.split('-').reverse().join('/') || 'N/A'}
                       </td>
-                      <td className="text-center py-3 px-2 font-mono text-white">
-                        {result.originalValue.toFixed(2)}
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-white cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.originalValue.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o valor (formato numérico)"
+                      >
+                        {formatCurrency(result.originalValue)}
                       </td>
-                      <td className="text-center py-3 px-2 font-mono text-green-400">
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-green-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.correctionPercentage.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o percentual (formato numérico)"
+                      >
                         {result.correctionPercentage.toFixed(2)}%
                       </td>
-                      <td className="text-center py-3 px-2 font-mono text-yellow-400">
-                        {result.originalValueCorrection.toFixed(2)}
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-yellow-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.originalValueCorrection.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o valor (formato numérico)"
+                      >
+                        {formatCurrency(result.originalValueCorrection)}
                       </td>
-                      <td className="text-center py-3 px-2 font-mono text-blue-400">
-                        {result.correctedOriginalValue.toFixed(2)}
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-blue-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.correctedOriginalValue.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o valor (formato numérico)"
+                      >
+                        {formatCurrency(result.correctedOriginalValue)}
                       </td>
-                      <td className="text-center py-3 px-2 font-mono text-orange-400">
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-orange-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.finePercentage.toString().replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o percentual (formato numérico)"
+                      >
                         {result.finePercentage}%
                       </td>
-                      <td className="text-center py-3 px-2 font-mono font-bold text-green-400">
-                        {result.finalFineValue.toFixed(2)}
+                      <td 
+                        className="text-center py-3 px-2 font-mono text-red-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          const multaValue = result.correctedOriginalValue * (result.finePercentage / 100);
+                          copyToClipboard(multaValue.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o valor da multa (formato numérico)"
+                      >
+                        {formatCurrency(result.correctedOriginalValue * (result.finePercentage / 100))}
+                      </td>
+                      <td 
+                        className="text-center py-3 px-2 font-mono font-bold text-green-400 cursor-pointer hover:bg-gray-800/50 transition-all duration-200 rounded"
+                        onClick={(e) => {
+                          copyToClipboard(result.finalFineValue.toFixed(2).replace('.', ','), e.currentTarget);
+                        }}
+                        title="Clique para copiar o valor (formato numérico)"
+                      >
+                        {formatCurrency(result.finalFineValue)}
                       </td>
                     </tr>
                   </tbody>
@@ -315,8 +430,13 @@ ${result.originalStartDate?.split('-').reverse().join('/')}\t${result.originalVa
               
               <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
                 <p className="text-xs text-blue-300">
-                  <strong>📋 Para copiar:</strong> Clique no botão "Copiar" ou selecione a tabela acima. 
-                  Esta tabela segue a metodologia PGE/SP: correção do principal pela SELIC + aplicação da multa sobre o valor já corrigido.
+                  <strong>📋 Formatos de cópia:</strong> 
+                  <strong className="text-blue-200">TSV</strong> (separado por tabs) - ideal para Excel/Google Sheets | 
+                  <strong className="text-green-200">CSV</strong> (separado por vírgulas) - padrão para importação.
+                  <br />
+                  <strong>🖱️ Cópia individual:</strong> Clique em qualquer valor da tabela para copiá-lo (formato numérico brasileiro).
+                  <br />
+                  <strong>Metodologia PGE/SP:</strong> Correção do principal pela SELIC + aplicação da multa sobre o valor já corrigido.
                 </p>
               </div>
             </div>
