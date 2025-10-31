@@ -25,7 +25,6 @@ export default function SelicCalculator() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [initialValue, setInitialValue] = useState('');
-  const [calculationType, setCalculationType] = useState<'monthly' | 'daily'>('monthly');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SelicResult | null>(null);
   const [error, setError] = useState('');
@@ -155,35 +154,7 @@ export default function SelicCalculator() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-3">
-              Tipo de Cálculo
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setCalculationType('monthly')}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                  calculationType === 'monthly'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Taxa Mensal
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalculationType('daily')}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                  calculationType === 'daily'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Taxa Diária
-              </button>
-            </div>
-          </div>
+
 
           <button
             type="submit"
@@ -206,8 +177,14 @@ export default function SelicCalculator() {
               <h3 className="text-lg font-semibold mb-3">Dados Informados</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-400">Data inicial:</span>{' '}
-                  <span className="font-medium">
+                  <span className="text-gray-400">Data inicial informada:</span>{' '}
+                  <span className="font-medium text-gray-300">
+                    {result.originalStartDate?.split('-').reverse().join('/') || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Data inicial usada no cálculo:</span>{' '}
+                  <span className="font-medium text-white">
                     {result.adjustedStartDate.split('-').reverse().join('/')}
                     {result.startDateWasAdjusted && '*'}
                   </span>
@@ -220,23 +197,36 @@ export default function SelicCalculator() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Valor nominal:</span>{' '}
-                  <span className="font-medium">{formatCurrency(result.initialValue)}</span>
-                </div>
-                <div>
                   <span className="text-gray-400">Tipo de cálculo:</span>{' '}
                   <span className="font-medium">{result.calculationType === 'monthly' ? 'Mensal' : 'Diário'}</span>
                 </div>
+                <div className="md:col-span-2">
+                  <span className="text-gray-400">Valor nominal:</span>{' '}
+                  <span className="font-medium">{formatCurrency(result.initialValue)}</span>
+                </div>
               </div>
+              
+              {result.calculationType === 'monthly' && (
+                <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
+                  <p className="text-xs text-blue-300">
+                    <strong>📅 Para cálculo mensal:</strong> A data inicial é automaticamente ajustada para +1 mês 
+                    e o último mês do período recebe taxa fixa de 1% (conforme metodologia PGE/SP).
+                  </p>
+                </div>
+              )}
+              
               {(result.startDateWasAdjusted || result.endDateWasAdjusted) && (
-                <p className="text-xs text-yellow-400 mt-3">
-                  * A data informada não é dia útil, a data utilizada para este cálculo refere-se ao primeiro dia útil subsequente
-                </p>
+                <div className="mt-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                  <p className="text-xs text-yellow-300">
+                    <strong>⚠️ Ajuste de dias úteis:</strong> * A data informada não é dia útil, 
+                    a data utilizada para este cálculo refere-se ao primeiro dia útil subsequente.
+                  </p>
+                </div>
               )}
             </div>
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Dados Calculados</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm mb-4">
                 <div>
                   <span className="text-gray-400">Índice de correção no período:</span>{' '}
                   <span className="font-medium">{result.correctionIndex.toFixed(8)}</span>
@@ -245,18 +235,32 @@ export default function SelicCalculator() {
                   <span className="text-gray-400">Valor percentual correspondente:</span>{' '}
                   <span className="font-medium">{result.correctionPercentage.toFixed(6)} %</span>
                 </div>
+                <div>
+                  <span className="text-gray-400">SELIC acumulada no período:</span>{' '}
+                  <span className="font-medium text-green-400">{result.correctionPercentage.toFixed(2)} %</span>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
                 <h3 className="text-sm text-gray-400 mb-1">Valor Inicial</h3>
                 <p className="text-2xl font-bold">{formatCurrency(result.initialValue)}</p>
               </div>
 
+              <div className="p-6 bg-green-900/30 rounded-lg border border-green-700">
+                <h3 className="text-sm text-gray-400 mb-1">SELIC Acumulada</h3>
+                <p className="text-2xl font-bold text-green-400">
+                  {result.correctionPercentage.toFixed(2)}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  No período ({result.periods} {result.calculationType === 'monthly' ? 'meses' : 'dias'})
+                </p>
+              </div>
+
               <div className="p-6 bg-gray-800 rounded-lg border border-gray-700">
                 <h3 className="text-sm text-gray-400 mb-1">Juros SELIC</h3>
-                <p className="text-2xl font-bold text-green-400">
+                <p className="text-2xl font-bold text-yellow-400">
                   {formatCurrency(result.interestValue)}
                 </p>
               </div>

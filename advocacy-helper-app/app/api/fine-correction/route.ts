@@ -23,19 +23,47 @@ export async function POST(request: NextRequest) {
     console.log('Data inicial original:', correctionStartDate, '-> ajustada:', adjustedStartDate.dataAjustada);
     console.log('Data final original:', finalDate, '-> ajustada:', adjustedFinalDate.dataAjustada);
     
-    // Para o cálculo, vamos até o dia ANTERIOR ao dia final
-    const finalDateForCalculation = new Date(adjustedFinalDate.dataAjustada);
-    finalDateForCalculation.setDate(finalDateForCalculation.getDate() - 1);
-    const finalDateCalculationISO = finalDateForCalculation.toISOString().split('T')[0];
+    // Determina se é taxa mensal
+    const isMonthly = calculationType === 'mensal';
     
-    console.log('Data final para cálculo (dia anterior):', finalDateCalculationISO);
+    // Nova lógica: Para cálculo MENSAL, busca dados de dataInicial+1mês até dataFinal-1mês
+    let dataInicialParaBusca: string;
+    let dataFinalParaBusca: string;
+    let dataInicialOriginal: string;
+    let dataFinalOriginal: string;
+    
+    if (isMonthly) {
+      // Para MENSAL: busca de (dataInicial+1mês) até (dataFinal-1mês)
+      dataInicialOriginal = adjustedStartDate.dataAjustada;
+      dataFinalOriginal = adjustedFinalDate.dataAjustada;
+      
+      // Adiciona 1 mês à data inicial
+      const [year, month, day] = adjustedStartDate.dataAjustada.split('-').map(Number);
+      const dataInicialMais1Mes = new Date(year, month - 1 + 1, day);
+      dataInicialParaBusca = dataInicialMais1Mes.toISOString().split('T')[0];
+      
+      // Subtrai 1 mês da data final
+      const [yearF, monthF, dayF] = adjustedFinalDate.dataAjustada.split('-').map(Number);
+      const dataFinalMenos1Mes = new Date(yearF, monthF - 1 - 1, dayF);
+      dataFinalParaBusca = dataFinalMenos1Mes.toISOString().split('T')[0];
+      
+      console.log(`📅 MULTA MENSAL - Original: ${dataInicialOriginal} a ${dataFinalOriginal}`);
+      console.log(`📅 MULTA MENSAL - Busca API: ${dataInicialParaBusca} a ${dataFinalParaBusca} (último mês será 1%)`);
+    } else {
+      // Para DIÁRIO: mantém lógica original
+      dataInicialOriginal = adjustedStartDate.dataAjustada;
+      dataInicialParaBusca = adjustedStartDate.dataAjustada;
+      
+      const finalDateForCalculation = new Date(adjustedFinalDate.dataAjustada);
+      finalDateForCalculation.setDate(finalDateForCalculation.getDate() - 1);
+      dataFinalOriginal = finalDateForCalculation.toISOString().split('T')[0];
+      dataFinalParaBusca = dataFinalOriginal;
+      
+      console.log(`📅 MULTA DIÁRIO - Busca API: ${dataInicialParaBusca} a ${dataFinalParaBusca}`);
+    }
     
     // Busca os dados da API do Banco Central
-    const selicRecords = await fetchSelicSerie(
-      serieCodigo,
-      adjustedStartDate.dataAjustada,
-      finalDateCalculationISO
-    );
+    const selicRecords = await fetchSelicSerie(serieCodigo, dataInicialParaBusca, dataFinalParaBusca);
 
     if (selicRecords.length === 0) {
       return NextResponse.json(
@@ -55,32 +83,32 @@ export async function POST(request: NextRequest) {
     // 1. Aplica a porcentagem da multa sobre o valor original
     const fineValue = originalFineNum * (finePercentageNum / 100);
     
-    // Determina se é taxa mensal
-    const isMonthly = calculationType === 'mensal';
+    // 2. Calcula o FATOR SELIC acumulado (uma única vez)
+    // Usa a data final de cálculo (não a ajustada) para determinar o mês atual
+    const fatorSelic = calcularFatorSelic(selicRecords, 1, false, false, isMonthly, dataInicialOriginal, dataFinalOriginal);
     
-    // 2. Corrige a multa pela SELIC
-    const correctedFine = calcularFatorSelic(selicRecords, fineValue, false, false, isMonthly);
-    
-    // 3. Calcula o fator de juros de mora (mesmo fator SELIC acumulado)
-    const interestFactor = calcularFatorSelic(selicRecords, 1, false, false, isMonthly);
-    
-    // 4. Aplica juros sobre a multa corrigida
-    const finalFineValue = correctedFine * interestFactor;
-    
-    // 5. Corrige o valor original pela SELIC
-    const correctedOriginalValue = calcularFatorSelic(selicRecords, originalFineNum, false, false, isMonthly);
-    
-    // 6. Valor total = valor original corrigido + multa final corrigida
-    const totalValue = correctedOriginalValue + finalFineValue;
-    
-    // Calcula valores individuais
+    // 3. Correção monetária: multa × fator SELIC
+    const correctedFine = fineValue * fatorSelic;
     const monetaryCorrection = correctedFine - fineValue;
-    const interest = finalFineValue - correctedFine;
-    const totalIncrease = finalFineValue - fineValue;
+    
+    // 4. Juros de mora: aplica o incremento do fator sobre a multa já corrigida
+    // Juros = multa corrigida × (fator - 1)
+    const interest = correctedFine * (fatorSelic - 1);
+    
+    // 5. Valor final da multa = correção monetária + juros de mora
+    const finalFineValue = correctedFine + interest;
+    
+    // 6. Corrige o valor original pela SELIC (mesmo fator)
+    const correctedOriginalValue = originalFineNum * fatorSelic;
     const originalValueCorrection = correctedOriginalValue - originalFineNum;
     
-    const correctionIndex = finalFineValue / fineValue;
-    const correctionPercentage = (correctionIndex - 1) * 100;
+    // 7. Valor total = valor original corrigido + multa final (corrigida + juros)
+    const totalValue = correctedOriginalValue + finalFineValue;
+    
+    // Valores para exibição
+    const totalIncrease = finalFineValue - fineValue;
+    const correctionIndex = fatorSelic;
+    const correctionPercentage = (fatorSelic - 1) * 100;
 
     return NextResponse.json({
       originalValue: originalFineNum,
@@ -88,7 +116,7 @@ export async function POST(request: NextRequest) {
       fineValue: fineValue,
       correctedFine: correctedFine,
       monetaryCorrection: monetaryCorrection,
-      interestFactor: interestFactor,
+      interestFactor: fatorSelic,
       interest: interest,
       finalFineValue: finalFineValue,
       totalIncrease: totalIncrease,

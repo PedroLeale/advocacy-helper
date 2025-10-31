@@ -260,7 +260,7 @@ export default function FineCorrection() {
             </div>
             <div className="p-6 bg-gray-900/50 rounded-lg border border-gray-700">
               <h3 className="text-lg font-semibold mb-3">Resumo do Cálculo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm mb-4">
                 <div>
                   <span className="text-gray-400">Índice de correção:</span>{' '}
                   <span className="font-medium">{result.correctionIndex.toFixed(8)}</span>
@@ -272,6 +272,10 @@ export default function FineCorrection() {
                 <div>
                   <span className="text-gray-400">Fator de juros:</span>{' '}
                   <span className="font-medium">{result.interestFactor.toFixed(8)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">SELIC acumulada no período:</span>{' '}
+                  <span className="font-medium text-green-400">{result.correctionPercentage.toFixed(2)} %</span>
                 </div>
               </div>
             </div>
