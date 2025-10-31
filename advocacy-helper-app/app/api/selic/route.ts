@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil } from '@/utils/selic';
-import { Money } from '@/utils/money';
+import { fetchSelicSerie, ajustarParaDiaUtil } from '@/utils/selic';
+import { Money, SelicCalculator } from '@/utils/money';
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,31 +76,37 @@ export async function POST(request: NextRequest) {
     console.log(`Primeiro registro:`, selicRecords[0]);
     console.log(`Último registro:`, selicRecords[selicRecords.length - 1]);
 
-    // Usa Money para cálculos precisos
+    // 🚀 NOVA IMPLEMENTAÇÃO: Usando SelicCalculator (Decimal.js)
     const valorInicialMoney = new Money(valorInicial);
     
-    const valorCorrigidoNum = calcularFatorSelic(selicRecords, valorInicialMoney.toNumber(), false, false, true, dataInicialOriginal, dataFinalOriginal);
-    const valorCorrigidoMoney = new Money(valorCorrigidoNum);
+    // Adiciona o último mês como 1% aos registros
+    const recordsComUltimoMes = [...selicRecords, { 
+      data: `01/${dataFinalOriginal.split('-')[1]}/${dataFinalOriginal.split('-')[0]}`, 
+      valor: '1.00' 
+    }];
     
-    // Cálculos precisos com Money
-    const valorJurosMoney = valorCorrigidoMoney.subtract(valorInicialMoney);
-    const indiceCorrecaoMoney = valorCorrigidoMoney.divide(valorInicialMoney.toNumber());
-    const percentualCorrecaoMoney = indiceCorrecaoMoney.subtract(1).multiply(100);
+    console.log(`🚀 Usando SelicCalculator com ${recordsComUltimoMes.length} registros (incluindo último mês 1%)`);
+    
+    // Calcula fator SELIC usando a classe dedicada
+    const fatorSelic = SelicCalculator.calculateSelicFactor(recordsComUltimoMes);
+    
+    // Aplica correção SELIC
+    const resultado = SelicCalculator.applySelicCorrection(valorInicialMoney, fatorSelic);
 
-    console.log(`💰 RESULTADO FINAL SELIC (Money Class):`);
+    console.log(`💰 RESULTADO FINAL SELIC (SelicCalculator + Decimal.js):`);
     console.log(`   Valor inicial: ${valorInicialMoney.toBRL()}`);
-    console.log(`   Valor corrigido: ${valorCorrigidoMoney.toBRL()}`);
-    console.log(`   Valor dos juros: ${valorJurosMoney.toBRL()}`);
-    console.log(`   Percentual: ${percentualCorrecaoMoney.toFixed(6)}%`);
+    console.log(`   Valor corrigido: ${resultado.correctedValue.toBRL()}`);
+    console.log(`   Valor dos juros: ${resultado.correction.toBRL()}`);
+    console.log(`   Percentual: ${resultado.percentage.toFixed(6)}%`);
 
     return NextResponse.json({
       valorInicial: valorInicialMoney.toNumber(),
-      valorCorrigido: valorCorrigidoMoney.toNumber(),
-      valorJuros: valorJurosMoney.toNumber(),
-      indiceCorrecao: indiceCorrecaoMoney.toNumber(),
-      percentualCorrecao: percentualCorrecaoMoney.toNumber(),
-      periodos: selicRecords.length,
-      taxas: selicRecords,
+      valorCorrigido: resultado.correctedValue.toNumber(),
+      valorJuros: resultado.correction.toNumber(),
+      indiceCorrecao: fatorSelic.toNumber(),
+      percentualCorrecao: resultado.percentage.toNumber(),
+      periodos: recordsComUltimoMes.length,
+      taxas: recordsComUltimoMes,
       dataInicialOriginal: dataInicial,
       dataInicialAjustada: dataInicialParaBusca,
       dataInicialFoiAjustada: true,

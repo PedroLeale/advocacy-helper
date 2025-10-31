@@ -46,17 +46,27 @@ export class Money {
     return new Money(this.value.sub(otherValue));
   }
 
-  multiply(factor: string | number | any): Money {
-    const factorValue = (factor && typeof factor === 'object' && factor.constructor === Decimal) 
-      ? factor 
-      : new Decimal(factor);
+  multiply(factor: string | number | Money | any): Money {
+    let factorValue;
+    if (factor instanceof Money) {
+      factorValue = factor.value;
+    } else if (factor && typeof factor === 'object' && factor.constructor === Decimal) {
+      factorValue = factor;
+    } else {
+      factorValue = new Decimal(factor);
+    }
     return new Money(this.value.mul(factorValue));
   }
 
-  divide(divisor: string | number | any): Money {
-    const divisorValue = (divisor && typeof divisor === 'object' && divisor.constructor === Decimal) 
-      ? divisor 
-      : new Decimal(divisor);
+  divide(divisor: string | number | Money | any): Money {
+    let divisorValue;
+    if (divisor instanceof Money) {
+      divisorValue = divisor.value;
+    } else if (divisor && typeof divisor === 'object' && divisor.constructor === Decimal) {
+      divisorValue = divisor;
+    } else {
+      divisorValue = new Decimal(divisor);
+    }
     return new Money(this.value.div(divisorValue));
   }
 
@@ -106,6 +116,10 @@ export class Money {
 
   toString(): string {
     return this.value.toFixed(2);
+  }
+
+  toExactString(): string {
+    return this.value.toString();
   }
 
   toFixed(decimals: number = 2): string {
@@ -269,7 +283,7 @@ export class SelicCalculator {
   /**
    * Calcula juros compostos com Decimal.js
    */
-  static calculateCompoundInterest(
+  static compoundInterest(
     principal: Money, 
     rate: Money, 
     periods: number
@@ -279,59 +293,3 @@ export class SelicCalculator {
     return principal.multiply(factor);
   }
 }
-
-/**
- * Exemplos de uso com Decimal.js:
- * 
- * // ❌ Problemas com float:
- * console.log(0.1 + 0.2);                    // 0.30000000000000004
- * console.log(9.99 * 100);                   // 998.9999999999999
- * console.log((0.1 + 0.2) * 3);              // 0.8999999999999999
- * 
- * // ✅ Solução com Money + Decimal.js:
- * const valor1 = new Money(0.1);
- * const valor2 = new Money(0.2);
- * console.log(valor1.add(valor2).toString()); // "0.30" (exato!)
- * 
- * const preco = new Money("9.99");
- * console.log(preco.multiply(100).toString()); // "999.00" (exato!)
- * 
- * // Operações avançadas:
- * const x = new Money("0.1");
- * const y = new Money("0.2");
- * const z = new Money("3");
- * console.log(x.add(y).multiply(z).toString()); // "0.90" (exato!)
- * 
- * // 🏦 Cálculos SELIC com máxima precisão:
- * const principal = new Money("10000.50");
- * const rates = [
- *   { data: "01/02/2023", valor: "1.15" },
- *   { data: "01/03/2023", valor: "1.25" },
- *   { data: "01/04/2023", valor: "1.35" }
- * ];
- * 
- * const factor = SelicCalculator.calculateSelicFactor(rates);
- * const result = SelicCalculator.applySelicCorrection(principal, factor);
- * 
- * console.log(result.correctedValue.toBRL());    // R$ 10.375,51 (precisão total)
- * console.log(result.correctedValue.toBRNumber()); // 10375,51
- * console.log(result.percentage.toFixed(8));     // 3.75000000%
- * 
- * // 🚨 Cálculo de multa:
- * const multa = SelicCalculator.calculateFine(result.correctedValue, "20");
- * console.log(multa.totalValue.toBRL()); // Valor final com multa
- * 
- * // 📊 Operações estatísticas:
- * const valores = [
- *   new Money("1000.33"),
- *   new Money("2500.67"), 
- *   new Money("750.99")
- * ];
- * console.log(Money.sum(valores).toBRL());     // Soma total
- * console.log(Money.average(valores).toBRL()); // Média
- * console.log(Money.max(...valores).toBRL());  // Valor máximo
- * 
- * // 🔢 Precisão infinita:
- * const precisao = new Money("1").divide("3").multiply("3");
- * console.log(precisao.toString()); // "1.00" (não 0.9999999999999999)
- */

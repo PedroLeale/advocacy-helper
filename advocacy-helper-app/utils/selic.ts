@@ -1,3 +1,5 @@
+import { Money } from './money';
+
 type SelicRecord = {
   data: string;
   valor: string;
@@ -147,21 +149,6 @@ export async function fetchSelicSerie(
   
   return uniqueRecords;
 }
-
-function adicionarUmMes(dataStr: string): string {
-  // Converte "YYYY-MM-DD" para Date, adiciona 1 mês e volta para "YYYY-MM-DD"
-  const [year, month, day] = dataStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day); // month - 1 porque Date usa 0-based months
-  date.setMonth(date.getMonth() + 1);
-  
-  const newYear = date.getFullYear();
-  const newMonth = String(date.getMonth() + 1).padStart(2, '0');
-  const newDay = String(date.getDate()).padStart(2, '0');
-  
-  return `${newYear}-${newMonth}-${newDay}`;
-}
-
-import { Money, SelicCalculator } from './money';
 
 export function calcularFatorSelic(
   selicRecords: SelicRecord[],

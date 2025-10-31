@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchSelicSerie, calcularFatorSelic, ajustarParaDiaUtil } from '@/utils/selic';
+import { fetchSelicSerie, ajustarParaDiaUtil } from '@/utils/selic';
 import { Money, SelicCalculator } from '@/utils/money';
 
 export async function POST(request: NextRequest) {
@@ -82,37 +82,41 @@ export async function POST(request: NextRequest) {
     console.log(`Primeiro registro:`, selicRecords[0]);
     console.log(`Último registro:`, selicRecords[selicRecords.length - 1]);
 
-    // NOVA METODOLOGIA COM MONEY CLASS: Corrige primeiro o valor principal, depois aplica a multa
+    // 🚀 NOVA METODOLOGIA: Usando SelicCalculator (Decimal.js)
     const originalFineMoney = new Money(originalFineValue);
     const finePercentageMoney = new Money(finePercentage);
     
-    // 1. Calcula o FATOR SELIC acumulado (usando valor base 1 para obter apenas o fator)
-    const fatorSelicNum = calcularFatorSelic(selicRecords, 1, false, false, true, dataInicialOriginal, dataFinalOriginal);
-    const fatorSelicMoney = new Money(fatorSelicNum);
+    // Adiciona o último mês como 1% aos registros
+    const recordsComUltimoMes = [...selicRecords, { 
+      data: `01/${dataFinalOriginal.split('-')[1]}/${dataFinalOriginal.split('-')[0]}`, 
+      valor: '1.00' 
+    }];
+    
+    // 1. Calcula o FATOR SELIC acumulado usando SelicCalculator
+    const fatorSelicMoney = SelicCalculator.calculateSelicFactor(recordsComUltimoMes);
     const selicPercentageMoney = fatorSelicMoney.subtract(1).multiply(100);
     
-    console.log(`📊 NOVA METODOLOGIA DE MULTA (Money Class):`);
+    console.log(`📊 NOVA METODOLOGIA DE MULTA (SelicCalculator + Decimal.js):`);
     console.log(`   Valor original: ${originalFineMoney.toBRL()}`);
     console.log(`   SELIC acumulada: ${selicPercentageMoney.toFixed(2)}%`);
     console.log(`   Fator SELIC: ${fatorSelicMoney.toFixed(8)}`);
     
-    // 2. Atualiza o valor principal pela SELIC usando Money
-    const correctedOriginalValueMoney = originalFineMoney.multiply(fatorSelicMoney.toNumber());
-    const originalValueCorrectionMoney = correctedOriginalValueMoney.subtract(originalFineMoney);
+    // 2. Aplica correção SELIC usando SelicCalculator
+    const resultadoCorrecao = SelicCalculator.applySelicCorrection(originalFineMoney, fatorSelicMoney);
+    const correctedOriginalValueMoney = resultadoCorrecao.correctedValue;
+    const originalValueCorrectionMoney = resultadoCorrecao.correction;
     
     console.log(`   Valor principal corrigido: ${correctedOriginalValueMoney.toBRL()}`);
     console.log(`   Correção do principal: ${originalValueCorrectionMoney.toBRL()}`);
     
-    // 3. Aplica o percentual da multa SOBRE O VALOR JÁ CORRIGIDO usando Money
-    const fineValueMoney = correctedOriginalValueMoney.multiply(finePercentageMoney.divide(100).toNumber());
+    // 3. Calcula multa usando SelicCalculator
+    const multaResultado = SelicCalculator.calculateFine(correctedOriginalValueMoney, finePercentage);
+    const fineValueMoney = multaResultado.fineValue;
+    const totalValueMoney = multaResultado.totalValue;
     
     console.log(`   Multa ${finePercentage}% sobre valor corrigido: ${fineValueMoney.toBRL()}`);
-    
-    // 4. Valor final = valor principal corrigido + multa
-    const totalValueMoney = correctedOriginalValueMoney.add(fineValueMoney);
-    
     console.log(`   VALOR FINAL: ${totalValueMoney.toBRL()}`);
-    console.log(`📋 RESUMO (Money Class):`);
+    console.log(`📋 RESUMO (SelicCalculator + Decimal.js):`);
     console.log(`   Principal: ${originalFineMoney.toBRL()} → ${correctedOriginalValueMoney.toBRL()} (+${selicPercentageMoney.toFixed(2)}%)`);
     console.log(`   Multa: ${fineValueMoney.toBRL()} (${finePercentage}% sobre valor corrigido)`);
     console.log(`   Total: ${totalValueMoney.toBRL()}`);
@@ -135,8 +139,8 @@ export async function POST(request: NextRequest) {
       correctedOriginalValue: correctedOriginalValueMoney.toNumber(),
       originalValueCorrection: originalValueCorrectionMoney.toNumber(),
       totalValue: totalValueMoney.toNumber(),
-      periods: selicRecords.length,
-      rates: selicRecords,
+      periods: recordsComUltimoMes.length,
+      rates: recordsComUltimoMes,
       originalStartDate: correctionStartDate,
       adjustedStartDate: dataInicialParaBusca, // Data realmente usada no cálculo (+1 mês)
       startDateWasAdjusted: true, // Sempre ajustada para +1 mês na metodologia
